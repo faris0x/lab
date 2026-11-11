@@ -1,0 +1,61 @@
+---
+import LatexLogo from '../components/LatexLogo.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import BooleanTool from '../components/BooleanTool.svelte';
+---
+
+<BaseLayout
+  title={'Boolean algebra | lab by faris0x'}
+  description="Simplify Boolean expressions with truth tables, canonical forms and Quine–McCluskey prime implicants, then export the working as a .tex file."
+  current="boolean"
+  math
+>
+  <div class="tool-head">
+    <div>
+      <h1>Boolean algebra</h1>
+    </div>
+    <p>
+      Turn a Boolean statement into its truth table, canonical forms and a
+      minimal sum of products. The finished working exports as <LatexLogo />.
+    </p>
+  </div>
+
+  <BooleanTool client:idle />
+
+  <section class="section" aria-labelledby="reading">
+    <h2 id="reading">Reading the result</h2>
+    <p class="section-intro">
+      The truth table lists every assignment of the variables. Minterms are the
+      rows where the statement is true; maxterms are the rows where it is
+      false. The canonical forms spell those rows out fully.
+    </p>
+    <p class="section-intro">
+      The simplifier uses the Quine–McCluskey method. It combines adjacent
+      minterms into prime implicants, then chooses essential prime implicants
+      and a small cover for the rest. The result is a minimal sum of products,
+      not merely a different-looking equivalent statement.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="syntax">
+    <h2 id="syntax">Syntax</h2>
+    <ul class="plain-list section-intro">
+      <li><strong>Negation</strong>: <code>~p</code> or <code>!p</code>.</li>
+      <li><strong>Conjunction</strong>: <code>p &amp; q</code>.</li>
+      <li><strong>Disjunction</strong>: <code>p | q</code> or <code>p v q</code>.</li>
+      <li><strong>Exclusive or</strong>: <code>p ^ q</code>.</li>
+      <li><strong>Implication</strong>: <code>p -&gt; q</code>.</li>
+      <li><strong>Equivalence</strong>: <code>p &lt;-&gt; q</code>.</li>
+      <li><strong>Constants</strong>: <code>0</code> and <code>1</code>.</li>
+    </ul>
+  </section>
+
+  <section class="section" aria-labelledby="export">
+    <h2 id="export">Export</h2>
+    <p class="section-intro">
+      The <LatexLogo /> tab previews the document and lets you copy or download
+      the <code>.tex</code> source. The export includes the truth table,
+      canonical forms, prime implicants and the minimised expression.
+    </p>
+  </section>
+</BaseLayout>

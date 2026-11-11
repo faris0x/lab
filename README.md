@@ -3,8 +3,9 @@
 Local Wave 0 of `lab.faris0x.dev`: exact, step-by-step mathematics tools.
 
 The live tools are **Simplex & Big-M** at `/optimisation`, the **Matrix
-toolkit** at `/matrix`, **Complex numbers** at `/complex`, and **Truth tables**
-at `/logic`. Tool routes stay
+toolkit** at `/matrix`, **Complex numbers** at `/complex`, **Truth tables** at
+`/logic`, **Graphs & networks** at `/graphs`, the **Floating point toolkit** at
+`/floating-point`, and **Boolean algebra** at `/boolean`. Tool routes stay
 at the top level: new tools go at `/<topic>`, not nested under a second
 category. The Argand axes use `d3-scale` for rounded ticks and
 consistent equal-aspect scaling. Everything is local-only for now; no DNS, deployment or

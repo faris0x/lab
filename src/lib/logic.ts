@@ -1,10 +1,10 @@
 export type Node =
   | { type: 'var'; name: string }
   | { type: 'not'; child: Node }
-  | { type: 'and' | 'or' | 'imp' | 'iff'; left: Node; right: Node };
+  | { type: 'and' | 'or' | 'xor' | 'imp' | 'iff'; left: Node; right: Node };
 
 interface Token {
-  kind: 'var' | 'not' | 'and' | 'or' | 'imp' | 'iff' | 'open' | 'close';
+  kind: 'var' | 'not' | 'and' | 'or' | 'xor' | 'imp' | 'iff' | 'open' | 'close';
   value: string;
 }
 
@@ -48,7 +48,8 @@ function tokenize(source: string): Token[] {
     } else {
       const ch = text[i];
       if (ch === '~' || ch === '!') tokens.push({ kind: 'not', value: ch });
-      else if (ch === '&' || ch === '^') tokens.push({ kind: 'and', value: ch });
+      else if (ch === '&') tokens.push({ kind: 'and', value: ch });
+      else if (ch === '^') tokens.push({ kind: 'xor', value: ch });
       else if (ch === '|' || ch === 'v') tokens.push({ kind: 'or', value: ch });
       else if (ch === '(') tokens.push({ kind: 'open', value: ch });
       else if (ch === ')') tokens.push({ kind: 'close', value: ch });
@@ -100,10 +101,19 @@ export function parse(source: string): Node {
   }
 
   function parseOr(): Node {
-    let left = parseAnd();
+    let left = parseXor();
     while (peek()?.kind === 'or') {
       take('or');
-      left = { type: 'or', left, right: parseAnd() };
+      left = { type: 'or', left, right: parseXor() };
+    }
+    return left;
+  }
+
+  function parseXor(): Node {
+    let left = parseAnd();
+    while (peek()?.kind === 'xor') {
+      take('xor');
+      left = { type: 'xor', left, right: parseAnd() };
     }
     return left;
   }
@@ -158,6 +168,8 @@ export function label(node: Node): string {
       return `${wrap(node.left)} ∧ ${wrap(node.right)}`;
     case 'or':
       return `${wrap(node.left)} ∨ ${wrap(node.right)}`;
+    case 'xor':
+      return `${wrap(node.left)} ⊕ ${wrap(node.right)}`;
     case 'imp':
       return `${wrap(node.left)} → ${wrap(node.right)}`;
     case 'iff':
@@ -166,7 +178,7 @@ export function label(node: Node): string {
 }
 
 function needsParens(node: Node): boolean {
-  return node.type === 'and' || node.type === 'or' || node.type === 'imp' || node.type === 'iff';
+  return node.type === 'and' || node.type === 'or' || node.type === 'xor' || node.type === 'imp' || node.type === 'iff';
 }
 
 function wrap(node: Node): string {
@@ -183,6 +195,8 @@ export function evaluate(node: Node, values: Record<string, boolean>): boolean {
       return evaluate(node.left, values) && evaluate(node.right, values);
     case 'or':
       return evaluate(node.left, values) || evaluate(node.right, values);
+    case 'xor':
+      return evaluate(node.left, values) !== evaluate(node.right, values);
     case 'imp':
       return !evaluate(node.left, values) || evaluate(node.right, values);
     case 'iff':
@@ -312,7 +326,8 @@ ${formula
   .replace(/<->/g, '\\leftrightarrow ')
   .replace(/->/g, '\\to ')
   .replace(/[&∧]/g, '\\land ')
-  .replace(/[|∨]/g, '\\lor ')
+   .replace(/[|∨]/g, '\\lor ')
+  .replace(/\^/g, '\\oplus ')
   .replace(/[~¬]/g, '\\neg ')}
 \\]
 \\[

@@ -1,0 +1,61 @@
+---
+import LatexLogo from '../components/LatexLogo.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import GraphTool from '../components/GraphTool.svelte';
+---
+
+<BaseLayout
+  title={'Graphs & networks | lab by faris0x'}
+  description="Dijkstra, Floyd–Warshall, Kruskal and Prim on an editable weighted graph, with every step recorded and exported as a .tex file."
+  current="graphs"
+  math
+>
+  <div class="tool-head">
+    <div>
+      <h1>Graphs &amp; networks</h1>
+    </div>
+    <p>
+      Edit a weighted graph and run shortest-path or spanning-tree algorithms.
+      Every decision is recorded, and the finished working exports as <LatexLogo />.
+    </p>
+  </div>
+
+  <GraphTool client:idle />
+
+  <section class="section" aria-labelledby="algorithms">
+    <h2 id="algorithms">Algorithms</h2>
+    <ul class="plain-list section-intro">
+      <li><strong>Dijkstra</strong> finds the shortest path from one source, provided all weights are non-negative.</li>
+      <li><strong>Floyd–Warshall</strong> finds shortest distances between every pair of vertices.</li>
+      <li><strong>Kruskal</strong> builds a minimum spanning tree by taking edges in increasing weight and rejecting cycles.</li>
+      <li><strong>Prim</strong> grows a minimum spanning tree from a chosen start vertex by repeatedly taking the lightest crossing edge.</li>
+    </ul>
+    <p class="section-intro">
+      Critical path analysis and route inspection are the next graph methods in
+      the queue; the current release covers the shortest-path and
+      minimum-spanning-tree algorithms.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="reading">
+    <h2 id="reading">Reading the working</h2>
+    <p class="section-intro">
+      The adjacency matrix stores the weight on each edge; leave a cell blank
+      when there is no edge. For an undirected graph the matrix is mirrored, so
+      entering a weight once is enough.
+    </p>
+    <p class="section-intro">
+      Each algorithm reports its running state after every decision. The
+      shortest-path algorithms show distance updates, while the spanning-tree
+      algorithms show accepted and rejected edges and the running total.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="export">
+    <h2 id="export">Export</h2>
+    <p class="section-intro">
+      The <LatexLogo /> tab previews the document and lets you copy or download
+      the <code>.tex</code> source.
+    </p>
+  </section>
+</BaseLayout>

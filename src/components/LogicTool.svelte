@@ -116,7 +116,7 @@
 
   <p class="hint">
     Use letters for propositions, <code>~</code> for not, <code>&amp;</code> for and,
-    <code>|</code> for or, <code>-&gt;</code> for implication and <code>&lt;-&gt;</code>
+    <code>|</code> for or, <code>^</code> for xor, <code>-&gt;</code> for implication and <code>&lt;-&gt;</code>
     for equivalence. Parentheses work as expected.
   </p>
 

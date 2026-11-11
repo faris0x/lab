@@ -21,7 +21,7 @@ import LatexLogo from '../components/LatexLogo.astro';
   <section class="section" aria-labelledby="available">
     <h2 id="available" data-ar="متاح الآن">Available now</h2>
     <p class="section-intro" data-ar="ثلاث أدوات متاحة: التحسين، والجبر الخطي، والأعداد المركبة. تشترك جميعها في كود التتبع والتصدير الذي ستستخدمه الأدوات التالية.">
-      Four tools are live: optimisation, linear algebra, complex numbers, and logic.
+      Seven tools are live: optimisation, linear algebra, complex numbers, logic, graphs, floating point, and Boolean algebra.
       They share the trace and export code used by the ones that follow.
     </p>
     <div class="grid">
@@ -60,6 +60,31 @@ import LatexLogo from '../components/LatexLogo.astro';
           exports as a .tex file.
         </p>
       </a>
+      <a class="card" href="/graphs">
+        <span class="tag tag-live">Live · Networks</span>
+        <h3>Graphs &amp; networks</h3>
+        <p>
+          Edit a weighted graph and run Dijkstra, Floyd–Warshall, Kruskal or
+          Prim. Distance updates, accepted edges and rejected cycles are
+          recorded step by step.
+        </p>
+      </a>
+      <a class="card" href="/floating-point">
+        <span class="tag tag-live">Live · Number systems</span>
+        <h3>Floating point</h3>
+        <p>
+          Convert between binary, octal, denary and hexadecimal, normalise
+          binary values, and encode or decode custom and IEEE 754 formats.
+        </p>
+      </a>
+      <a class="card" href="/boolean">
+        <span class="tag tag-live">Live · Boolean</span>
+        <h3>Boolean algebra</h3>
+        <p>
+          Build truth tables, canonical SOP and POS forms, prime implicants and
+          a minimal sum of products for a Boolean statement.
+        </p>
+      </a>
     </div>
   </section>
 
@@ -71,11 +96,11 @@ import LatexLogo from '../components/LatexLogo.astro';
     </p>
     <div class="grid">
       <div class="card is-planned">
-        <span class="tag" data-ar="مخطط · متقطع">Planned · Discrete</span>
-        <h3 data-ar="المخططات والشبكات">Graphs &amp; networks</h3>
-        <p data-ar="خوارزميات ديكسترا وفلويد–وورسال وكراسكال وبريم وتحليل المسار الحرج وتفتيش المسارات، مع مخطط قابل للتحرير وتتبع للخطوات.">
-          Dijkstra, Floyd–Warshall, Kruskal, Prim, critical path analysis, and
-          route inspection, each with an editable graph and step trace.
+        <span class="tag">Planned · Networks</span>
+        <h3>Critical path &amp; route inspection</h3>
+        <p>
+          Activity networks with earliest and latest times, floats and the
+          critical path, plus route inspection with repeated edges.
         </p>
       </div>
     </div>

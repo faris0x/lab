@@ -5,7 +5,7 @@ import '../styles/lab.css';
 interface Props {
   title: string;
   description?: string;
-  current?: 'home' | 'simplex' | 'matrix' | 'complex' | 'logic';
+  current?: 'home' | 'simplex' | 'matrix' | 'complex' | 'logic' | 'graphs' | 'float' | 'boolean';
   math?: boolean;
 }
 
@@ -110,6 +110,18 @@ const schema = {
           <a
             href="/logic"
             aria-current={current === 'logic' ? 'page' : undefined}>Logic</a
+          >
+          <a
+            href="/graphs"
+            aria-current={current === 'graphs' ? 'page' : undefined}>Graphs</a
+          >
+          <a
+            href="/floating-point"
+            aria-current={current === 'float' ? 'page' : undefined}>Float</a
+          >
+          <a
+            href="/boolean"
+            aria-current={current === 'boolean' ? 'page' : undefined}>Boolean</a
           >
           <a href="https://faris0x.dev" rel="noopener">faris0x.dev</a>
           <button

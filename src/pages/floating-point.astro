@@ -1,0 +1,62 @@
+---
+import LatexLogo from '../components/LatexLogo.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import FloatingTool from '../components/FloatingTool.svelte';
+---
+
+<BaseLayout
+  title={'Floating point toolkit | lab by faris0x'}
+  description="Convert between binary, octal, denary and hexadecimal, normalise binary values, and encode or decode custom and IEEE 754 floating-point formats."
+  current="float"
+  math
+>
+  <div class="tool-head">
+    <div>
+      <h1>Floating point toolkit</h1>
+    </div>
+    <p>
+      Convert values between number bases, normalise binary numbers, build a
+      custom floating-point format, or inspect IEEE 754 single and double
+      precision. The working is shown explicitly.
+    </p>
+  </div>
+
+  <FloatingTool client:idle />
+
+  <section class="section" aria-labelledby="bases">
+    <h2 id="bases">Bases and normalisation</h2>
+    <p class="section-intro">
+      Binary, octal, denary and hexadecimal conversions use exact integer and
+      fractional arithmetic. Terminating expansions are shown in full;
+      recurring expansions are marked with parentheses around the repeating
+      block, and a truncated expansion ends with an ellipsis.
+    </p>
+    <p class="section-intro">
+      Normalising writes a binary value as <span class="inline-code">±1.xxxx × 2<sup>e</sup></span>.
+      The sign, exponent and stored mantissa are reported separately.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="formats">
+    <h2 id="formats">Floating-point formats</h2>
+    <p class="section-intro">
+      A custom format uses one sign bit, a biased exponent and an implied
+      leading 1. The bias is <span class="inline-code">2<sup>e−1</sup> − 1</span>,
+      and the reserved top exponent represents infinity or NaN.
+    </p>
+    <p class="section-intro">
+      IEEE 754 uses 8 exponent bits and 23 fraction bits for single precision,
+      or 11 exponent bits and 52 fraction bits for double precision. The
+      toolkit reports the exact bit fields and the decoded value.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="export">
+    <h2 id="export">Export</h2>
+    <p class="section-intro">
+      Each result includes a <LatexLogo /> export with the conversions,
+      normalised form or bit fields, so the working can be copied or downloaded
+      as a <code>.tex</code> file.
+    </p>
+  </section>
+</BaseLayout>
