@@ -1,0 +1,107 @@
+---
+import katex from 'katex';
+import LatexLogo from '../components/LatexLogo.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SimplexTool from '../components/SimplexTool.svelte';
+
+const tex = (source: string) =>
+  katex.renderToString(source, {
+    displayMode: false,
+    throwOnError: false,
+    strict: 'ignore'
+  });
+
+const varLabels = ['x', 'y', 'z', 'w', 'v'].map((name) => tex(name));
+const senseLabels = {
+  max: tex('\\text{Maximise } Z ='),
+  min: tex('\\text{Minimise } C =')
+};
+const senseLabelsAr = {
+  max: tex('\\text{عظّم } Z ='),
+  min: tex('\\text{صغّر } C =')
+};
+const hintHtml = `Exact input: ${tex('3/4')}, ${tex('0.5')}, ${tex('-2')}. Non-negative variables are assumed.`;
+const hintHtmlAr = `مدخلات دقيقة: ${tex('3/4')}، ${tex('0.5')}، ${tex('-2')}. يُفترض أن المتغيرات غير سالبة.`;
+---
+
+<BaseLayout
+  title={'Simplex & Big-M | lab by faris0x'}
+  description="Solve a linear program with simplex or Big-M, inspect the tableaus, and export the worked solution as a .tex file."
+  current="simplex"
+  math
+>
+  <div class="tool-head">
+    <div>
+      <h1 data-ar="السمبلكس وأم الكبيرة">Simplex &amp; Big-M</h1>
+    </div>
+    <p data-ar="تنقّل بين جداول برنامج خطي وخذ الحل المكتوب معك بصيغة @@K0@@. تأتي الشروحات من التتبع نفسه الذي تراه على الشاشة.">
+      Move through the tableaus of a linear program and take the worked
+      solution away as <LatexLogo />. The
+      explanations come from the same trace you see on screen.
+    </p>
+  </div>
+
+  <SimplexTool
+    varLabels={varLabels}
+    senseLabels={senseLabels}
+    senseLabelsAr={senseLabelsAr}
+    hintHtml={hintHtml}
+    hintHtmlAr={hintHtmlAr}
+    client:idle
+  />
+
+  <section class="section" aria-labelledby="reading">
+    <h2 id="reading" data-ar="قراءة الجدول">Reading the tableau</h2>
+    <p class="section-intro" data-ar="كل صف قيد في الصورة القياسية؛ ويعطي عمود b.v. المتغير الأساسي لذلك الصف. يُكتب صف دالة الهدف على الصورة @@K0@@، لذا يشير أي عنصر سالب إلى متغير يمكنه تحسين الهدف. خلية المحور محددة بإطار.">
+      Each row is a constraint in standard form; the b.v. column gives the
+      basic variable for that row. The objective row is written as{' '}
+      <span set:html={tex("Z - c'x + M a = 0")}></span>, so a negative entry
+      identifies a variable that can improve the objective. The pivot cell is
+      outlined.
+    </p>
+    <ul class="plain-list section-intro">
+      <li data-ar="<strong>متغيرات الركود</strong> (@@K0@@) تحوّل ≤ إلى =.">
+        <strong>Slack</strong> variables (<span set:html={tex('s')}></span>)
+        turn ≤ into =.
+      </li>
+      <li data-ar="<strong>متغيرات الفائض</strong> (@@K0@@) تحوّل ≥ إلى =.">
+        <strong>Surplus</strong> variables (<span set:html={tex('e')}></span>)
+        turn ≥ into =.
+      </li>
+      <li data-ar="<strong>المتغيرات الاصطناعية</strong> (@@K0@@) توفّر الأساس الابتدائي عند غياب الركود؛ وهي تحمل عقوبة @@K1@@.">
+        <strong>Artificial</strong> variables
+        (<span set:html={tex('a')}></span>) give the initial basis when there
+        is no slack; they carry the penalty <span set:html={tex('M')}></span>.
+      </li>
+    </ul>
+  </section>
+
+  <section class="section" aria-labelledby="conventions">
+    <h2 id="conventions" data-ar="الاصطلاحات">Conventions</h2>
+    <p class="section-intro" data-ar="تستخدم الأداة اصطلاح صف @@K0@@ الشائع. اختر المتغير الداخل من أكثر معامل هدف سالب، ثم طبّق اختبار النسبة؛ وتُحسم التعادلات لصالح الصف الأدنى. تُحل مسألة التصغير باعتبارها تعظيمًا لـ @@K1@@، ثم تُعاد القيمة المبلَّغ عنها إلى صيغتها الأصلية.">
+      The tool uses the common <span set:html={tex('Z')}></span>-row
+      convention. Choose the entering variable from the most negative
+      objective coefficient, then apply the ratio test; ties go to the lowest
+      row. Minimisation is solved as the maximisation of{' '}
+      <span set:html={tex('-C')}></span>, and the reported value is converted
+      back.
+    </p>
+    <p class="section-intro" data-ar="تستخدم طريقة أم الكبيرة زوجًا @@K0@@ مع اعتبار @@K1@@ كبيرًا اعتباطيًا. تتبع قرارات المحور المعاملات الدقيقة، لذا يطابق الجدول الحساب اليدوي.">
+      Big-M uses a pair{' '}
+      <span set:html={tex('a + bM')}></span> with{' '}
+      <span set:html={tex('M \\to \\infty')}></span> treated as arbitrarily
+      large. Pivot decisions follow the exact coefficients, so the tableau
+      matches a hand calculation.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="export">
+    <h2 id="export" data-ar="التصدير">Export</h2>
+    <p class="section-intro" data-ar="تعرض نافذة @@K0@@ معاينة المستند وتتيح لك نسخ مصدر <code>.tex</code> أو تنزيله. وهي تستخدم <code>amsmath</code> و<code>array</code>، لذا يترجمه أي تثبيت TeX قياسي وتطابق المعاينة الجداول المصدَّرة.">
+      The <LatexLogo /> tab previews the document
+      and lets you copy or download the <code>.tex</code> source. It uses
+      <code>amsmath</code> and <code>array</code>, so a standard TeX
+      installation compiles it and the preview matches the exported tableaus.
+    </p>
+  </section>
+</BaseLayout>

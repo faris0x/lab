@@ -1,0 +1,60 @@
+---
+import LatexLogo from '../components/LatexLogo.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import LogicTool from '../components/LogicTool.svelte';
+---
+
+<BaseLayout
+  title={'Truth tables | lab by faris0x'}
+  description="Build exact truth tables for propositional formulas, classify them as tautologies or contradictions, and export the table as a .tex file."
+  current="logic"
+  math
+>
+  <div class="tool-head">
+    <div>
+      <h1>Truth tables</h1>
+    </div>
+    <p>
+      Enter a propositional formula and see every row. Each subformula gets its
+      own column, and the finished table exports as <LatexLogo /> for your notes.
+    </p>
+  </div>
+
+  <LogicTool client:idle />
+
+  <section class="section" aria-labelledby="reading">
+    <h2 id="reading">Reading the table</h2>
+    <p class="section-intro">
+      The first columns list every assignment of truth values to the
+      propositional variables. The remaining columns evaluate each distinct
+      subformula from the inside out; the last column is the whole formula.
+    </p>
+    <p class="section-intro">
+      A formula with a true final column in every row is a tautology. One with
+      a false final column in every row is a contradiction. Anything else is
+      contingent.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="syntax">
+    <h2 id="syntax">Syntax</h2>
+    <ul class="plain-list section-intro">
+      <li><strong>Negation</strong>: <code>~p</code> or <code>!p</code>.</li>
+      <li><strong>Conjunction</strong>: <code>p &amp; q</code> or <code>p ^ q</code>.</li>
+      <li><strong>Disjunction</strong>: <code>p | q</code> or <code>p v q</code>.</li>
+      <li><strong>Implication</strong>: <code>p -&gt; q</code>.</li>
+      <li><strong>Equivalence</strong>: <code>p &lt;-&gt; q</code>.</li>
+      <li>Use parentheses to group; <code>~</code> binds tightest, then <code>&amp;</code>, <code>|</code>, <code>-&gt;</code>, and <code>&lt;-&gt;</code>.</li>
+    </ul>
+  </section>
+
+  <section class="section" aria-labelledby="export">
+    <h2 id="export">Export</h2>
+    <p class="section-intro">
+      The <LatexLogo /> tab previews the document and lets you copy or download
+      the <code>.tex</code> source. It uses <code>amsmath</code>,
+      <code>amssymb</code> and <code>array</code>, so a standard TeX
+      installation compiles the table.
+    </p>
+  </section>
+</BaseLayout>

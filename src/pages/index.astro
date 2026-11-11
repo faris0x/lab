@@ -1,0 +1,92 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import LatexLogo from '../components/LatexLogo.astro';
+---
+
+<BaseLayout
+  title="lab by faris0x"
+  description="Exact, browser-based tools for A-level and undergraduate mathematics, with worked steps and .tex export."
+  current="home"
+  math
+>
+  <section class="hero">
+    <h1 data-ar="أدوات رياضيات <em>تُظهر خطوات الحل</em>.">Maths tools that <em>show the working</em>.</h1>
+    <p class="lede" data-ar="عمل دقيق مكتوب سطرًا سطرًا. كل شيء يعمل داخل متصفحك، ويمكن لكل أداة تصدير حلّها كاملًا بصيغة @@K0@@ لتدوين ملاحظاتك.">
+      Exact work, written out line by line. Everything runs in your browser,
+      and each tool can export its full solution in <LatexLogo /> for your
+      notetaking.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="available">
+    <h2 id="available" data-ar="متاح الآن">Available now</h2>
+    <p class="section-intro" data-ar="ثلاث أدوات متاحة: التحسين، والجبر الخطي، والأعداد المركبة. تشترك جميعها في كود التتبع والتصدير الذي ستستخدمه الأدوات التالية.">
+      Four tools are live: optimisation, linear algebra, complex numbers, and logic.
+      They share the trace and export code used by the ones that follow.
+    </p>
+    <div class="grid">
+      <a class="card" href="/optimisation">
+        <span class="tag tag-live" data-ar="مباشر · التحسين">Live · Optimisation</span>
+        <h3 data-ar="السمبلكس وأم الكبيرة">Simplex &amp; Big-M</h3>
+        <p data-ar="أنشئ برنامجًا خطيًا وتنقّل بين جداوله. تبقى الحسابات دقيقة؛ وتستخدم طريقة أم الكبيرة عقوبة رمزية. يُصدَّر الحل المكتوب كملف .tex.">
+          Set up a linear program and move through its tableaus. The
+          arithmetic stays exact; Big-M uses a symbolic penalty. The worked
+          solution exports as a .tex file.
+        </p>
+      </a>
+      <a class="card" href="/matrix">
+        <span class="tag tag-live" data-ar="مباشر · الجبر الخطي">Live · Linear algebra</span>
+        <h3 data-ar="صندوق أدوات المصفوفات">Matrix toolkit</h3>
+        <p data-ar="اختزل مصفوفة بالصفوف وافحص كل عملية. المحدد والمعكوس والفضاء الصفري والأنظمة الخطية تستخدم الحساب الدقيق نفسه.">
+          Row-reduce a matrix and inspect each operation. Determinant,
+          inverse, nullspace, and linear systems use the same exact arithmetic.
+        </p>
+      </a>
+      <a class="card" href="/complex">
+        <span class="tag tag-live" data-ar="مباشر · الأعداد المركبة">Live · Complex numbers</span>
+        <h3 data-ar="الأعداد المركبة ومخطط أرغاند">Complex numbers &amp; Argand</h3>
+        <p data-ar="اجمع أو اطرح أو اضرب أو اقسم أعدادًا مركبة. حوّل إلى الصورة القطبية، واستخدم دي موافر للقوى، وجد كل الجذور، وشاهد كل نتيجة على مخطط أرغاند.">
+          Add, subtract, multiply, or divide complex numbers. Convert to polar form, use
+          de Moivre for powers, find all roots, and see every result on an
+          Argand diagram.
+        </p>
+      </a>
+      <a class="card" href="/logic">
+        <span class="tag tag-live">Live · Logic</span>
+        <h3>Truth tables</h3>
+        <p>
+          Parse a propositional formula, evaluate every assignment and classify
+          the result as a tautology, contradiction or contingent. The table
+          exports as a .tex file.
+        </p>
+      </a>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="planned">
+    <h2 id="planned" data-ar="التالي في القائمة">Next in the queue</h2>
+    <p class="section-intro" data-ar="ستكون هذه أدوات صغيرة مستقلة. تأتي الخوارزميات الدقيقة أولًا، ثم يليها العمل الرمزي والمرئي بعد استقرار المحرك المشترك.">
+      These will be small standalone tools. The exact algorithms come first;
+      symbolic and visual work follows once the shared engine is settled.
+    </p>
+    <div class="grid">
+      <div class="card is-planned">
+        <span class="tag" data-ar="مخطط · متقطع">Planned · Discrete</span>
+        <h3 data-ar="المخططات والشبكات">Graphs &amp; networks</h3>
+        <p data-ar="خوارزميات ديكسترا وفلويد–وورسال وكراسكال وبريم وتحليل المسار الحرج وتفتيش المسارات، مع مخطط قابل للتحرير وتتبع للخطوات.">
+          Dijkstra, Floyd–Warshall, Kruskal, Prim, critical path analysis, and
+          route inspection, each with an editable graph and step trace.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="about">
+    <h2 id="about" data-ar="عن هذا الإصدار">About this build</h2>
+    <p class="section-intro" data-ar="الأجزاء التفاعلية مكتوبة بلغة Rust ومترجمة إلى WebAssembly، والصفحات عبارة عن HTML ثابت. يحافظ الحساب النسبي الدقيق على اتساق الجداول مع الحسابات اليدوية؛ وتستخدم طريقة أم الكبيرة رمزًا M.">
+      The interactive parts are Rust compiled to WebAssembly, and the pages
+      are static HTML. Exact rational arithmetic keeps tableaus consistent
+      with hand calculations; Big-M uses a symbolic M.
+    </p>
+  </section>
+</BaseLayout>

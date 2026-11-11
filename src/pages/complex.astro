@@ -1,0 +1,95 @@
+---
+import katex from 'katex';
+import LatexLogo from '../components/LatexLogo.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ComplexTool from '../components/ComplexTool.svelte';
+
+const tex = (source: string) =>
+  katex.renderToString(source, {
+    displayMode: false,
+    throwOnError: false,
+    strict: 'ignore'
+  });
+
+const labels = {
+  z: tex('z'),
+  w: tex('w'),
+  i: tex('i')
+};
+const hintHtml = `Exact input: fractions such as ${tex('3/4')} and decimals such as ${tex('0.5')}. Both parts of each number are needed.`;
+const hintHtmlAr = `مدخلات دقيقة: كسور مثل ${tex('3/4')} وأعداد عشرية مثل ${tex('0.5')}. يلزم جزآ كل عدد.`;
+---
+
+<BaseLayout
+  title={'Complex numbers | lab by faris0x'}
+  description="Complex arithmetic, polar form, powers, and roots, with an Argand diagram and exact working."
+  current="complex"
+  math
+>
+  <div class="tool-head">
+    <div>
+      <h1 data-ar="الأعداد المركبة">Complex numbers</h1>
+    </div>
+    <p data-ar="اجمع أو اطرح أو اضرب أو اقسم عددين مركبين، وحوّلهما إلى الصورة القطبية، واستخدم دي موافر لحساب القوى والجذور. يرسم مخطط أرغاند المدخلات والنتيجة.">
+      Add, subtract, multiply, or divide two complex numbers, change to polar form, and
+      use de Moivre for powers and roots. The Argand diagram plots the input
+      and the result.
+    </p>
+  </div>
+
+  <ComplexTool labels={labels} hintHtml={hintHtml} hintHtmlAr={hintHtmlAr} client:idle />
+
+  <section class="section" aria-labelledby="arithmetic">
+    <h2 id="arithmetic" data-ar="الحساب">Arithmetic</h2>
+    <p class="section-intro" data-ar="تُجمع الأجزاء الحقيقية والتخيلية كلٌّ على حدة. ويستخدم الضرب @@K0@@. أما القسمة فتضرب البسط والمقام في مرافق المقام.">
+      Real and imaginary parts are collected separately. Multiplication uses{' '}
+      <span set:html={tex('(a + bi)(c + di) = (ac - bd) + (ad + bc)i')}></span>.
+      Division multiplies top and bottom by the conjugate of the denominator.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="polar">
+    <h2 id="polar" data-ar="الصورة القطبية">Polar form</h2>
+    <p class="section-intro" data-ar="المعيار هو @@K0@@، والسعة هي @@K1@@.">
+      The modulus is <span set:html={tex('r = |z| = \\sqrt{a^2 + b^2}')}></span>,
+      and the argument is{' '}
+      <span set:html={tex('\\theta = \\arg z')}></span>.
+    </p>
+    <p class="section-intro" data-ar="وعليه @@K0@@">
+      Then{' '}
+      <span set:html={tex('z = r(\\cos\\theta + i\\sin\\theta) = re^{i\\theta}.')}></span>
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="powers">
+    <h2 id="powers" data-ar="القوى والجذور">Powers and roots</h2>
+    <p class="section-intro" data-ar="تعطي صيغة دي موافر @@K0@@. والجذر النوني الرئيسي @@K1@@ هو @@K2@@. وبما أن @@K3@@، فإن الجذور هي @@K4@@ على دائرة الوحدة، أو @@K5@@ مضروبة في تلك القيم من أجل @@K6@@ عام.">
+      De Moivre gives{' '}
+      <span set:html={tex('z^n = r^n(\\cos n\\theta + i\\sin n\\theta)')}></span>.
+      A principal <span set:html={tex('n')}></span>th root is{' '}
+      <span set:html={tex('z_0 = |z|^{1/n}e^{i\\theta/n}')}></span>. With{' '}
+      <span set:html={tex('\\omega = e^{2\\pi i/n}')}></span>, the roots are{' '}
+      <span set:html={tex('\\{1, \\omega, \\ldots, \\omega^{n-1}\\}')}></span>{' '}
+      on the unit circle, or <span set:html={tex('z_0')}></span> times those
+      values for a general <span set:html={tex('z')}></span>.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="argand">
+    <h2 id="argand" data-ar="مخطط أرغاند">Argand diagram</h2>
+    <p class="section-intro" data-ar="المحور الأفقي هو الجزء الحقيقي، والمحور الرأسي هو الجزء التخيلي. تظهر المدخلات بلون محايد، وتظهر النتائج والجذور بلون التمييز. وتشير دائرة متقطعة إلى المعيار عند الحاجة.">
+      The horizontal axis is the real part and the vertical axis is the
+      imaginary part. Inputs are shown in a neutral colour, results and roots
+      in the accent colour. A dashed circle marks the modulus when it is
+      relevant.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="export">
+    <h2 id="export" data-ar="التصدير">Export</h2>
+    <p class="section-intro" data-ar="تعرض نافذة @@K0@@ معاينة العمل وتتيح لك نسخ مصدر <code>.tex</code> أو تنزيله.">
+      The <LatexLogo /> tab previews the working and
+      lets you copy or download the <code>.tex</code> source.
+    </p>
+  </section>
+</BaseLayout>

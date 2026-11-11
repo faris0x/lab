@@ -1,0 +1,343 @@
+---
+import '../styles/tokens.css';
+import '../styles/lab.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  current?: 'home' | 'simplex' | 'matrix' | 'complex' | 'logic';
+  math?: boolean;
+}
+
+const {
+  title,
+  description = 'Small, exact maths tools that show the working. Built by Faris Alfarhan.',
+  current,
+  math = false
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+const siteName = 'lab by faris0x';
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: siteName,
+  url: new URL('/', Astro.site).href,
+  author: {
+    '@type': 'Person',
+    name: 'Faris Alfarhan',
+    url: 'https://faris0x.dev'
+  }
+};
+---
+
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={new URL('/favicon.png', Astro.site).href} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#000000" />
+    <script is:inline>
+      try {
+        var stored = localStorage.getItem('theme');
+        if (!stored) {
+          stored = matchMedia('(prefers-color-scheme: light)').matches
+            ? 'light'
+            : 'dark';
+        }
+        document.documentElement.dataset.theme = stored;
+      } catch (error) {}
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700&display=swap"
+    />
+    <link rel="icon" href="/favicon.png" type="image/png" sizes="128x128" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    {math && <link rel="stylesheet" href="/katex/katex.min.css" />}
+    <script type="application/ld+json" set:html={JSON.stringify(schema)} />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="shell topbar-inner">
+        <a class="brand" href="/" aria-label="lab dot faris0x dot dev, home" data-ar-aria="مختبر فارس، الصفحة الرئيسية">
+          <img
+            class="brand-icon"
+            src="/favicon.png"
+            alt=""
+            width="30"
+            height="30"
+          />
+          <span class="brand-name"
+            ><span class="brand-mark">lab.</span><span class="brand-sub"
+              >faris0x.dev</span
+            ></span
+          >
+        </a>
+        <nav class="nav" aria-label="Primary">
+          <a href="/" aria-current={current === 'home' ? 'page' : undefined} data-ar="الأدوات">Tools</a>
+          <a
+            href="/optimisation"
+            aria-current={current === 'simplex' ? 'page' : undefined}
+            data-ar="السمبلكس">Simplex</a
+          >
+          <a
+            href="/matrix"
+            aria-current={current === 'matrix' ? 'page' : undefined}
+            data-ar="المصفوفات">Matrix</a
+          >
+          <a
+            href="/complex"
+            aria-current={current === 'complex' ? 'page' : undefined}
+            data-ar="الأعداد المركبة">Complex</a
+          >
+          <a
+            href="/logic"
+            aria-current={current === 'logic' ? 'page' : undefined}>Logic</a
+          >
+          <a href="https://faris0x.dev" rel="noopener">faris0x.dev</a>
+          <button
+            class="theme-toggle"
+            id="theme-toggle"
+            type="button"
+            aria-pressed="false"
+          >
+            <span class="theme-dot" aria-hidden="true"></span>
+            <span id="theme-label" data-ar="داكن">Dark</span>
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="shell">
+      <slot />
+    </main>
+
+    <footer>
+      <div class="shell foot-row">
+        <span data-ar="حقوق النشر © ٢٠٢٦ فارس الفرحان. جميع الحقوق محفوظة.">Copyright &copy; 2026 Faris Alfarhan. All rights reserved.</span>
+        <span data-ar="نسخة محلية. كل شيء يعمل داخل متصفحك.">Local build. Everything runs in your browser.</span>
+      </div>
+      <div class="shell foot-legal">
+        <p data-ar="قد تجمع faris0x.dev وجميع صفحات الويب المرتبطة بها معلومات أساسية عن استخدامك للخدمات المقدمة، لأغراض مراقبة الاستخدام والإحصاءات. لن تُخزَّن أي معلومات تعريفية شخصية على الإطلاق.">
+          faris0x.dev and all associated webpages may collect basic information
+          about your usage of the services offered, for the purposes of usage
+          monitoring and metrics. No personally identifiable information will
+          ever be stored.
+        </p>
+        <p>
+          <span data-ar="للاستفسارات، راسلني على ">For inquiries, email </span><a href="mailto:alfarhan@faris0x.dev">alfarhan@faris0x.dev</a>.
+        </p>
+      </div>
+    </footer>
+
+    <script is:inline>
+      (function () {
+        var root = document.documentElement;
+        var button = document.getElementById('theme-toggle');
+        var label = document.getElementById('theme-label');
+        function paint(theme) {
+          root.dataset.theme = theme;
+          if (label) {
+            var ar = document.documentElement.lang === 'ar';
+            label.textContent = theme === 'light'
+              ? (ar ? 'فاتح' : 'Light')
+              : (ar ? 'داكن' : 'Dark');
+          }
+          if (button) {
+            button.setAttribute('aria-pressed', String(theme === 'light'));
+          }
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) {
+            meta.setAttribute(
+              'content',
+              theme === 'light' ? '#f4ead1' : '#000000'
+            );
+          }
+        }
+        paint(root.dataset.theme === 'light' ? 'light' : 'dark');
+        if (button) {
+          button.addEventListener('click', function () {
+            var next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+            paint(next);
+            try {
+              localStorage.setItem('theme', next);
+            } catch (error) {}
+          });
+        }
+      })();
+    </script>
+    <script is:inline>
+      (function () {
+        var root = document.documentElement;
+        var select = document.getElementById('lang-select');
+        var store = new Map();
+
+        function tokenize(el) {
+          var clone = el.cloneNode(true);
+          var keeps = [];
+          var nodes = clone.querySelectorAll('.katex, .latex-logo, code');
+          Array.prototype.forEach.call(nodes, function (node) {
+            var token = '@@K' + keeps.length + '@@';
+            keeps.push(node.outerHTML);
+            node.parentNode.replaceChild(document.createTextNode(token), node);
+          });
+          return { html: clone.innerHTML, keeps: keeps };
+        }
+
+        function restore(html, keeps) {
+          return html.replace(/@@K(\d+)@@/g, function (match, index) {
+            return keeps[Number(index)] || match;
+          });
+        }
+
+        var items = [];
+        Array.prototype.forEach.call(
+          document.querySelectorAll('[data-ar]'),
+          function (el) {
+            items.push({ el: el, base: tokenize(el) });
+          }
+        );
+
+        var aria = [];
+        Array.prototype.forEach.call(
+          document.querySelectorAll('[data-ar-aria]'),
+          function (el) {
+            aria.push({
+              el: el,
+              base: el.getAttribute('aria-label'),
+              ar: el.getAttribute('data-ar-aria')
+            });
+          }
+        );
+
+        var mathOriginals = new WeakMap();
+
+        function arNumeric(text) {
+          var digits = '٠١٢٣٤٥٦٧٨٩';
+          return text
+            .replace(/(\d)\.(\d)/g, '$1٫$2')
+            .replace(/[0-9]/g, function (digit) {
+              return digits[Number(digit)];
+            });
+        }
+
+        function convertMath(arabic) {
+          Array.prototype.forEach.call(
+            document.querySelectorAll('.katex'),
+            function (rootEl) {
+              if (arabic) {
+                var changed = false;
+                var walker = document.createTreeWalker(
+                  rootEl,
+                  NodeFilter.SHOW_TEXT
+                );
+                var node;
+                while ((node = walker.nextNode())) {
+                  var original = node.nodeValue || '';
+                  var converted = arNumeric(original)
+                    .replace(/\bcos\b/g, 'جتا')
+                    .replace(/\bsin\b/g, 'جا')
+                    .replace(/\barg\b/g, 'سعة')
+                    .replace(/\bdet\b/g, 'محدد')
+                    .replace(/\bdim\b/g, 'بُعد')
+                    .replace(/\brad\b/g, 'راديان')
+                    .replace(/Pivot columns:/g, 'أعمدة المحور:')
+                    .replace(/Free columns:/g, 'الأعمدة الحرة:')
+                    .replace(/free columns:/g, 'الأعمدة الحرة:');
+                  if (converted !== original) {
+                    if (!mathOriginals.has(node)) {
+                      mathOriginals.set(node, original);
+                    }
+                    node.nodeValue = converted;
+                    changed = true;
+                  }
+                }
+                if (changed) rootEl.setAttribute('data-ar-digits', '1');
+              } else if (rootEl.getAttribute('data-ar-digits') === '1') {
+                var restoreWalker = document.createTreeWalker(
+                  rootEl,
+                  NodeFilter.SHOW_TEXT
+                );
+                var textNode;
+                while ((textNode = restoreWalker.nextNode())) {
+                  if (mathOriginals.has(textNode)) {
+                    textNode.nodeValue = mathOriginals.get(textNode);
+                  }
+                }
+                rootEl.removeAttribute('data-ar-digits');
+              }
+            }
+          );
+        }
+
+        function apply(lang) {
+          var arabic = lang === 'ar';
+          root.lang = arabic ? 'ar' : 'en';
+          root.dir = arabic ? 'rtl' : 'ltr';
+          items.forEach(function (item) {
+            var source = arabic
+              ? item.el.getAttribute('data-ar')
+              : item.base.html;
+            item.el.innerHTML = restore(source, item.base.keeps);
+          });
+          aria.forEach(function (item) {
+            item.el.setAttribute('aria-label', arabic ? item.ar : item.base);
+          });
+          if (select) select.value = arabic ? 'ar' : 'en';
+          var label = document.getElementById('theme-label');
+          if (label) {
+            var light = root.dataset.theme === 'light';
+            label.textContent = arabic
+              ? (light ? 'فاتح' : 'داكن')
+              : (light ? 'Light' : 'Dark');
+          }
+          convertMath(arabic);
+          document.dispatchEvent(
+            new CustomEvent('langchange', { detail: { lang: root.lang } })
+          );
+          window.requestAnimationFrame(function () {
+            convertMath(arabic);
+          });
+        }
+
+        apply('en');
+
+        if (typeof MutationObserver !== 'undefined') {
+          var pendingMath = false;
+          var observer = new MutationObserver(function () {
+            if (pendingMath) return;
+            pendingMath = true;
+            window.requestAnimationFrame(function () {
+              pendingMath = false;
+              convertMath(root.lang === 'ar');
+            });
+          });
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            characterData: true
+          });
+        }
+
+
+      })();
+    </script>
+  </body>
+</html>

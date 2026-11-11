@@ -1,0 +1,86 @@
+---
+import katex from 'katex';
+import LatexLogo from '../components/LatexLogo.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import MatrixTool from '../components/MatrixTool.svelte';
+
+const tex = (source: string) =>
+  katex.renderToString(source, {
+    displayMode: false,
+    throwOnError: false,
+    strict: 'ignore'
+  });
+
+const labels = {
+  A: tex('A'),
+  augmented: tex('[A \\mid \\mathbf{b}]')
+};
+const hintHtml = `Exact input: fractions such as ${tex('3/4')} and decimals such as ${tex('0.5')}. Changing the operation clears the grid; examples fill it.`;
+const hintHtmlAr = `مدخلات دقيقة: كسور مثل ${tex('3/4')} وأعداد عشرية مثل ${tex('0.5')}. تغيير العملية يمسح الشبكة؛ والأمثلة تملؤها.`;
+---
+
+<BaseLayout
+  title={'Matrix toolkit | lab by faris0x'}
+  description="Exact row reduction, determinants, inverses, nullspaces, and linear systems, with every row operation recorded."
+  current="matrix"
+  math
+>
+  <div class="tool-head">
+    <div>
+      <h1 data-ar="صندوق أدوات المصفوفات">Matrix toolkit</h1>
+    </div>
+    <p data-ar="اختزال دقيق بالصفوف، تُشتق منه المحددات والمعكوسات والفضاءات الصفرية. ويستخدم حل أي نظام المصفوفة المعزَّزة نفسها.">
+      Exact row reduction, with the determinant, inverse, and nullspace derived
+      from it. Solving a system uses the same augmented matrix.
+    </p>
+  </div>
+
+  <MatrixTool labels={labels} hintHtml={hintHtml} hintHtmlAr={hintHtmlAr} client:idle />
+
+  <section class="section" aria-labelledby="reading">
+    <h2 id="reading" data-ar="قراءة الناتج">Reading the output</h2>
+    <p class="section-intro" data-ar="تعرض كل خطوة المصفوفة كاملة بعد تنفيذ العملية، مع تحديد المحور بإطار. تبقى العناصر على شكل كسور دقيقة، لذا تطابق النتيجة الحساب اليدوي.">
+      Each step shows the whole matrix after an operation, with the pivot
+      boxed. Entries stay as exact fractions, so the result matches a hand
+      calculation.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="operations">
+    <h2 id="operations" data-ar="العمليات">Operations</h2>
+    <ul class="plain-list section-intro">
+      <li data-ar="<strong>الاختزال بالصفوف</strong> يعطي الصورة الصفية المختزلة والرتبة وأعمدة المحاور والعُطالة.">
+        <strong>Row reduce</strong> gives the reduced row echelon form, the
+        rank, the pivot columns, and the nullity.
+      </li>
+      <li data-ar="<strong>المحدد</strong> يستخدم الحذف ويتتبع الإشارة.">
+        <strong>Determinant</strong> uses elimination and tracks the sign.
+      </li>
+      <li data-ar="<strong>المعكوس</strong> يختزل @@K0@@ بالصفوف ويبلّغ عندما تكون @@K1@@ شاذة.">
+        <strong>Inverse</strong> row-reduces{' '}
+        <span set:html={tex('[A \\mid I]')}></span> and reports when{' '}
+        <span set:html={tex('A')}></span> is singular.
+      </li>
+      <li data-ar="<strong>الفضاء الصفري</strong> يقرأ أساسًا من الأعمدة الحرة في المصفوفة المختزلة.">
+        <strong>Nullspace</strong> reads a basis from the free columns of the
+        reduced matrix.
+      </li>
+      <li data-ar="<strong>الحل</strong> يختزل @@K0@@ بالصفوف ويميّز بين حل وحيد وحلول لا نهائية ونظام غير متسق.">
+        <strong>Solve</strong> row-reduces{' '}
+        <span set:html={tex('[A \\mid \\mathbf{b}]')}></span> and distinguishes
+        a unique solution, infinitely many solutions, and an inconsistent
+        system.
+      </li>
+    </ul>
+  </section>
+
+  <section class="section" aria-labelledby="export">
+    <h2 id="export" data-ar="التصدير">Export</h2>
+    <p class="section-intro" data-ar="تعرض نافذة @@K0@@ معاينة العمل وتتيح لك نسخ مصدر <code>.tex</code> أو تنزيله. يستخدم المستند <code>amsmath</code> و<code>bmatrix</code>، لذا يترجمه أي تثبيت TeX قياسي.">
+      The <LatexLogo /> tab previews the working
+      and lets you copy or download the <code>.tex</code> source. The document
+      uses <code>amsmath</code> and <code>bmatrix</code>, so a standard TeX
+      installation compiles it.
+    </p>
+  </section>
+</BaseLayout>
