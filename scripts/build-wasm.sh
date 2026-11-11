@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+mkdir -p public/wasm
 
 for crate in simplex linalg complexnum; do
   cargo build \
