@@ -1,16 +1,20 @@
 <script lang="ts">
-  import LatexLogo from './LatexLogo.svelte';
+  import MathField from './MathField.svelte';
+  import MathBlock from './Math.svelte';
+  import LatexPreview from './LatexPreview.svelte';
+  import MathText from './MathText.svelte';
+  import Tabs from './Tabs.svelte';
+  import ExportBar from './ExportBar.svelte';
+  import { logicLabelToLatex } from '../lib/math-input';
   import { simplifyBoolean, type BooleanResult } from '../lib/boolean';
 
   let formula = $state('(p & q) | (p & ~q)');
   let result = $state<BooleanResult | null>(null);
   let error = $state('');
-  let tab = $state<'table' | 'simplify' | 'latex'>('simplify');
-  let copyState = $state('');
+  let tab = $state<'simplify' | 'table' | 'latex'>('simplify');
 
   function run() {
     error = '';
-    copyState = '';
     result = null;
     try {
       result = simplifyBoolean(formula);
@@ -26,32 +30,6 @@
     run();
   }
 
-  async function copyLatex() {
-    if (!result) return;
-    try {
-      await navigator.clipboard.writeText(result.latex);
-      copyState = 'Copied';
-    } catch {
-      copyState = 'Copy failed';
-    }
-    window.setTimeout(() => {
-      copyState = '';
-    }, 1600);
-  }
-
-  function downloadLatex() {
-    if (!result) return;
-    const blob = new Blob([result.latex], { type: 'application/x-tex' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = 'boolean-simplification.tex';
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-
   run();
 </script>
 
@@ -64,15 +42,10 @@
 >
   <h2 class="panel-title">Boolean expression</h2>
 
-  <label class="field formula-field">
-    <span>Statement</span>
-    <input
-      bind:value={formula}
-      aria-label="Boolean expression"
-      spellcheck="false"
-      autocomplete="off"
-    />
-  </label>
+  <div class="formula-field">
+    <span class="field-label">Statement</span>
+    <MathField bind:value={formula} format="logic" showEnter={false} ariaLabel="Boolean expression" onEnter={run} />
+  </div>
 
   <div class="example-row">
     <span class="example-label">Examples</span>
@@ -98,9 +71,9 @@
   </div>
 
   <p class="hint">
-    Use <code>~</code> for not, <code>&amp;</code> for and, <code>|</code> for or,
-    <code>^</code> for xor, <code>-&gt;</code> for implication, <code>&lt;-&gt;</code>
-    for equivalence, and <code>0</code>/<code>1</code> for constants.
+    Use the keypad for logical symbols, or type <code>~</code>, <code>&amp;</code>,
+    <code>|</code>, <code>^</code>, <code>-&gt;</code>, <code>&lt;-&gt;</code> and
+    <code>0</code>/<code>1</code>.
   </p>
 
   {#if error}
@@ -111,24 +84,27 @@
 {#if result}
   <section class="panel" aria-live="polite">
     <div class="status-line">
-      <span class="status status-ok">{result.minimal}</span>
+      <span class="status status-ok">{result.selected.length} term{result.selected.length === 1 ? '' : 's'}</span>
       <span class="step-count"
         >{result.minterms.length} minterm{result.minterms.length === 1 ? '' : 's'} ·
-        {result.selected.length} term{result.selected.length === 1 ? '' : 's'} after minimising</span
+        {result.variables.length} variable{result.variables.length === 1 ? '' : 's'}</span
       >
     </div>
 
-    <div class="tabs" role="tablist" aria-label="Boolean view">
-      <button class="tab" role="tab" aria-selected={tab === 'simplify'} onclick={() => (tab = 'simplify')}
-        >Simplification</button
-      >
-      <button class="tab" role="tab" aria-selected={tab === 'table'} onclick={() => (tab = 'table')}
-        >Truth table</button
-      >
-      <button class="tab" role="tab" aria-selected={tab === 'latex'} onclick={() => (tab = 'latex')}
-        ><LatexLogo /> preview</button
-      >
+    <div class="result-math">
+      <MathBlock latex={logicLabelToLatex(result.minimal)} display />
     </div>
+
+    <Tabs
+      ariaLabel="Boolean view"
+      value={tab}
+      items={[
+        { id: 'simplify', label: 'Simplification' },
+        { id: 'table', label: 'Truth table' },
+        { id: 'latex', label: 'preview', latex: '\\LaTeX' }
+      ]}
+      onChange={(id) => (tab = id as 'simplify' | 'table' | 'latex')}
+    />
 
     {#if tab === 'simplify'}
       <div class="bool-grid">
@@ -139,15 +115,15 @@
         </div>
         <div class="bool-card">
           <h3>Minimal sum of products</h3>
-          <p class="bool-expression">{result.minimal}</p>
+          <p class="bool-expression"><MathText text={`$${logicLabelToLatex(result.minimal)}$`} /></p>
         </div>
         <div class="bool-card">
           <h3>Canonical SOP</h3>
-          <p class="bool-expression bool-small">{result.canonicalSop}</p>
+          <p class="bool-expression bool-small"><MathText text={`$${logicLabelToLatex(result.canonicalSop)}$`} /></p>
         </div>
         <div class="bool-card">
           <h3>Canonical POS</h3>
-          <p class="bool-expression bool-small">{result.canonicalPos}</p>
+          <p class="bool-expression bool-small"><MathText text={`$${logicLabelToLatex(result.canonicalPos)}$`} /></p>
         </div>
       </div>
 
@@ -155,7 +131,7 @@
       <ul class="prime-list">
         {#each result.primes as prime}
           <li>
-            <code>{prime.expression}</code>
+            <span class="prime-expression"><MathText text={`$${logicLabelToLatex(prime.expression)}$`} /></span>
             <span>covers {prime.covers.join(', ')}</span>
             {#if result.essential.includes(prime)}<b>essential</b>{/if}
             {#if result.selected.includes(prime) && !result.essential.includes(prime)}<b>selected</b>{/if}
@@ -167,15 +143,17 @@
         <table class="truth-table">
           <thead>
             <tr>
-              {#each result.variables as variable}<th>{variable}</th>{/each}
-              <th>F</th>
+              {#each result.variables as variable}<th><MathText text={`$${variable}$`} /></th>{/each}
+              <th><MathText text="$F$" /></th>
             </tr>
           </thead>
           <tbody>
             {#each result.rows as row}
               <tr>
                 {#each row.values as value}
-                  <td class:truth-true={value} class:truth-false={!value}>{value ? '1' : '0'}</td>
+                  <td class:truth-true={value} class:truth-false={!value}
+                    ><MathText text={value ? '$1$' : '$0$'} /></td
+                  >
                 {/each}
               </tr>
             {/each}
@@ -183,15 +161,14 @@
         </table>
       </div>
     {:else}
-      <div class="btn-row" style="margin-top:0">
-        <button class="btn btn-ghost btn-small" type="button" onclick={copyLatex}
-          >{copyState || 'Copy full'} <LatexLogo /></button
-        >
-        <button class="btn btn-ghost btn-small" type="button" onclick={downloadLatex}
-          >Download .tex</button
-        >
+      <div class="latex-preview">
+        <LatexPreview latex={result.latex} />
       </div>
-      <pre class="latex-code">{result.latex}</pre>
+      <ExportBar latex={result.latex} filename="boolean-simplification.tex" />
+      <details class="details">
+        <summary>LaTeX source</summary>
+        <pre class="latex-code">{result.latex}</pre>
+      </details>
     {/if}
   </section>
 {/if}
@@ -204,10 +181,12 @@
     margin-bottom: 0.8rem;
   }
 
-  .formula-field input {
-    width: 100%;
+  .field-label {
     font-family: var(--mono);
-    font-size: 0.95rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fg-faint);
   }
 
   .bool-grid {
@@ -240,7 +219,6 @@
 
   .bool-expression {
     color: var(--accent);
-    font-family: var(--mono);
     font-size: 0.92rem;
     line-height: 1.6;
     overflow-wrap: anywhere;
@@ -272,7 +250,7 @@
     border-radius: 7px;
   }
 
-  .prime-list code {
+  .prime-expression {
     color: var(--accent);
   }
 

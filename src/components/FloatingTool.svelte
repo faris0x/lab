@@ -1,4 +1,13 @@
 <script lang="ts">
+  import MathField from './MathField.svelte';
+  import MathLabel from './MathLabel.svelte';
+  import MathBlock from './Math.svelte';
+  import LatexPreview from './LatexPreview.svelte';
+  import MathText from './MathText.svelte';
+  import Tabs from './Tabs.svelte';
+  import ExportBar from './ExportBar.svelte';
+  import StatusLine from './StatusLine.svelte';
+  import { escapeLatex, latexDocument } from '../lib/latex';
   import {
     convertBases,
     decodeCustom,
@@ -29,10 +38,38 @@
   let normalResult = $state<NormalisedResult | null>(null);
   let customResult = $state<CustomFloatResult | null>(null);
   let ieeeResult = $state<IeeeResult | null>(null);
-  let copyState = $state('');
+
+  const inputFormat = $derived(
+    mode === 'convert' || mode === 'normalise'
+      ? ('base' as const)
+      : mode === 'custom'
+        ? customAction === 'encode'
+          ? ('number' as const)
+          : ('base' as const)
+        : ieeeAction === 'encode'
+          ? ('number' as const)
+          : ('base' as const)
+  );
+
+  const inputBase = $derived(
+    mode === 'convert' || mode === 'normalise'
+      ? from
+      : mode === 'custom' && customAction === 'decode'
+        ? (16 as Base)
+        : mode === 'ieee' && ieeeAction === 'decode'
+          ? (16 as Base)
+          : (10 as Base)
+  );
+
+  const inputLabel = $derived(
+    mode === 'custom' && customAction === 'decode'
+      ? 'Bit pattern'
+      : mode === 'ieee' && ieeeAction === 'decode'
+        ? 'Hexadecimal bits'
+        : 'Value'
+  );
 
   function clearResults() {
-    copyState = '';
     baseResult = null;
     normalResult = null;
     customResult = null;
@@ -40,67 +77,52 @@
     error = '';
   }
 
+  function bitFields(bits: string, exponentWidth: number): string {
+    const sign = bits.slice(0, 1);
+    const exponent = bits.slice(1, 1 + exponentWidth);
+    const fraction = bits.slice(1 + exponentWidth);
+    return `\\underbrace{\\texttt{${sign}}}_{\\text{sign}}\\;\\underbrace{\\texttt{${exponent}}}_{\\text{exponent}}\\;\\underbrace{\\texttt{${fraction}}}_{\\text{fraction}}`;
+  }
+
   function exportLatex(): string {
     if (!baseResult && !normalResult && !customResult && !ieeeResult) return '';
-    const sections: string[] = [];
+    const sections: { title: string; body: string }[] = [];
+
     if (baseResult) {
-      const rows = baseResult.outputs.map(
-        (output) =>
-          `Base ${output.base}: \\texttt{${output.text.replace(/[_^]/g, (character) => `\\${character}`)}}`
-      );
-      sections.push(`\\section*{Base conversion}\n${rows.join('\n')}`);
+      const rows = baseResult.outputs
+        .map((output) => `\\text{Base ${output.base}} & \\texttt{${escapeLatex(output.text)}} & ${output.exact ? '\\text{exact}' : '\\text{recurring}'}`)
+        .join(' \\\\\n');
+      sections.push({
+        title: 'Base conversion',
+        body: `\\[\n\\begin{array}{lll}\n${rows}\n\\end{array}\n\\]`
+      });
     }
+
     if (normalResult) {
-      const binary = normalResult.binary.replace(/×/g, '\\times ');
-      sections.push(`\\section*{Normalised binary}\n\\[${binary}\\]`);
+      const sign = normalResult.sign === '-' ? '-' : '';
+      const fraction = normalResult.fraction || '0';
+      sections.push({
+        title: 'Normalised binary',
+        body: `\\[\n${sign}1.${fraction} \\times 2^{${normalResult.exponent}}\n\\]`
+      });
     }
+
     if (customResult) {
-      sections.push(
-        `\\section*{Custom binary format}\nBinary: \\texttt{${customResult.bitString}}\\\\\nHex: \\texttt{${customResult.hex}}\\\\\nValue: ${customResult.value}`
-      );
+      sections.push({
+        title: 'Custom binary format',
+        body: `\\[\n${bitFields(customResult.bitString, exponentBits)}\n\\]\n\\[\n\\text{Value} = ${escapeLatex(customResult.value)}\n\\]`
+      });
     }
+
     if (ieeeResult) {
-      sections.push(
-        `\\section*{IEEE 754}\nHex: \\texttt{${ieeeResult.hex}}\\\\\nBinary: \\texttt{${ieeeResult.bitString}}\\\\\nValue: ${ieeeResult.value}`
-      );
+      const exponentWidth = ieeeResult.kind === 'single' ? 8 : 11;
+      sections.push({
+        title: `IEEE 754 ${ieeeResult.kind}`,
+        body: `\\[\n${bitFields(ieeeResult.bitString, exponentWidth)}\n\\]\n\\[\n\\text{Value} = ${escapeLatex(ieeeResult.value)} \\qquad \\text{${ieeeResult.classification}}\n\\]`
+      });
     }
-    return `\\documentclass[11pt]{article}
-\\usepackage[a4paper,margin=2.2cm]{geometry}
-\\usepackage{amsmath,amssymb}
-\\setlength{\\parindent}{0pt}
-\\begin{document}
-\\section*{Floating point toolkit}
-${sections.join('\n\n')}
-\\end{document}
-`;
-  }
 
-  async function copyLatex() {
-    const text = exportLatex();
-    if (!text) return;
-    try {
-      await navigator.clipboard.writeText(text);
-      copyState = 'Copied';
-    } catch {
-      copyState = 'Copy failed';
-    }
-    window.setTimeout(() => {
-      copyState = '';
-    }, 1600);
-  }
-
-  function downloadLatex() {
-    const text = exportLatex();
-    if (!text) return;
-    const blob = new Blob([text], { type: 'application/x-tex' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = 'floating-point.tex';
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return latexDocument({ title: 'Floating point toolkit', sections });
   }
 
   function setMode(next: Mode) {
@@ -152,18 +174,30 @@ ${sections.join('\n\n')}
 >
   <h2 class="panel-title">Floating point toolkit</h2>
 
-  <div class="tabs fp-modes" role="tablist" aria-label="Tool">
-    <button class="tab" type="button" role="tab" aria-selected={mode === 'convert'} onclick={() => setMode('convert')}>Bases</button>
-    <button class="tab" type="button" role="tab" aria-selected={mode === 'normalise'} onclick={() => setMode('normalise')}>Normalise</button>
-    <button class="tab" type="button" role="tab" aria-selected={mode === 'custom'} onclick={() => setMode('custom')}>Binary format</button>
-    <button class="tab" type="button" role="tab" aria-selected={mode === 'ieee'} onclick={() => setMode('ieee')}>IEEE 754</button>
-  </div>
+  <Tabs
+    ariaLabel="Tool"
+    value={mode}
+    items={[
+      { id: 'convert', label: 'Bases' },
+      { id: 'normalise', label: 'Normalise' },
+      { id: 'custom', label: 'Binary format' },
+      { id: 'ieee', label: 'IEEE 754' }
+    ]}
+    onChange={(id) => setMode(id as Mode)}
+  />
 
   <div class="fp-controls">
-    <label class="field fp-wide">
-      <span>{mode === 'custom' && customAction === 'decode' ? 'Bit pattern' : mode === 'ieee' && ieeeAction === 'decode' ? 'Hexadecimal bits' : 'Value'}</span>
-      <input bind:value={input} spellcheck="false" autocomplete="off" />
-    </label>
+    <div class="field fp-wide">
+      <span>{inputLabel}</span>
+      <MathField
+        bind:value={input}
+        format={inputFormat}
+        base={inputBase}
+        ariaLabel={inputLabel}
+        showEnter={false}
+        onEnter={run}
+      />
+    </div>
 
     {#if mode === 'convert' || mode === 'normalise'}
       <label class="field">
@@ -215,7 +249,7 @@ ${sections.join('\n\n')}
 
   <p class="hint">
     {#if mode === 'convert'}
-      Enter a value with an optional fractional part, for example <code>1011.101</code> or <code>2D.8</code>.
+      Enter a value with an optional fractional part, for example <code>1011.101</code> or <code>2D.8</code>. The keypad changes to the selected base.
     {:else if mode === 'normalise'}
       The tool converts to binary and writes the value as a normalised binary mantissa and exponent.
     {:else if mode === 'custom'}
@@ -229,13 +263,13 @@ ${sections.join('\n\n')}
 </form>
 
 {#if baseResult}
-  <section class="panel">
-    <div class="status-line"><span class="status status-ok">Base conversion</span></div>
+  <section class="panel" aria-live="polite">
+    <StatusLine label="Base conversion" tone="ok" />
     <div class="fp-grid">
       {#each baseResult.outputs as output}
         <div class="fp-card">
           <h3>Base {output.base}</h3>
-          <code>{output.text}</code>
+          <MathBlock latex={`\\texttt{${escapeLatex(output.text)}}`} />
           <span>{output.exact ? 'exact' : 'recurring or truncated'}</span>
         </div>
       {/each}
@@ -244,60 +278,72 @@ ${sections.join('\n\n')}
 {/if}
 
 {#if normalResult}
-  <section class="panel">
-    <div class="status-line"><span class="status status-ok">Normalised binary</span></div>
-    <p class="fp-form">{normalResult.binary}</p>
+  <section class="panel" aria-live="polite">
+    <StatusLine label="Normalised binary" tone="ok" />
+    <div class="fp-form">
+      <MathBlock
+        latex={`${normalResult.sign === '-' ? '-' : ''}1.${normalResult.fraction || '0'} \\times 2^{${normalResult.exponent}}`}
+        display
+      />
+    </div>
     <dl class="fp-fields">
-      <div><dt>Sign</dt><dd>{normalResult.sign || 'positive'}</dd></div>
+      <div><dt>Sign</dt><dd>{normalResult.sign === '-' ? 'negative' : 'positive'}</dd></div>
       <div><dt>Exponent</dt><dd>{normalResult.exponent}</dd></div>
-      <div><dt>Mantissa</dt><dd>1.{normalResult.fraction || '0'}</dd></div>
+      <div><dt>Mantissa</dt><dd><MathText text={`$1.${normalResult.fraction || '0'}$`} /></dd></div>
       <div><dt>Representation</dt><dd>{normalResult.exact ? 'exact' : 'truncated'}</dd></div>
     </dl>
   </section>
 {/if}
 
 {#if customResult}
-  <section class="panel">
-    <div class="status-line"><span class="status status-ok">Custom binary format</span></div>
+  <section class="panel" aria-live="polite">
+    <StatusLine label="Custom binary format" tone="ok" />
+    <div class="fp-form">
+      <MathBlock latex={bitFields(customResult.bitString, exponentBits)} display />
+    </div>
     <dl class="fp-fields">
-      <div><dt>Binary</dt><dd><code>{customResult.bitString}</code></dd></div>
-      <div><dt>Hex</dt><dd><code>{customResult.hex}</code></dd></div>
+      <div><dt>Hex</dt><dd><MathBlock latex={`\\texttt{${escapeLatex(customResult.hex)}}`} /></dd></div>
       <div><dt>Sign</dt><dd>{customResult.sign}</dd></div>
       <div><dt>Exponent field</dt><dd>{customResult.exponentField}</dd></div>
-      <div><dt>Fraction</dt><dd><code>{customResult.fraction}</code></dd></div>
-      <div><dt>Value</dt><dd>{customResult.value}</dd></div>
+      <div><dt>Fraction</dt><dd><MathBlock latex={`\\texttt{${escapeLatex(customResult.fraction)}}`} /></dd></div>
+      <div><dt>Value</dt><dd><MathText text={`$${customResult.value}$`} /></dd></div>
     </dl>
     <p class="fp-note">{customResult.note}</p>
   </section>
 {/if}
 
 {#if ieeeResult}
-  <section class="panel">
-    <div class="status-line">
-      <span class="status status-ok">IEEE 754 {ieeeResult.kind}</span>
-      <span class="step-count">{ieeeResult.classification}</span>
+  <section class="panel" aria-live="polite">
+    <StatusLine
+      label={`IEEE 754 ${ieeeResult.kind}`}
+      meta={ieeeResult.classification}
+      tone="ok"
+    />
+    <div class="fp-form">
+      <MathBlock
+        latex={bitFields(ieeeResult.bitString, ieeeResult.kind === 'single' ? 8 : 11)}
+        display
+      />
     </div>
     <dl class="fp-fields">
-      <div><dt>Hex</dt><dd><code>{ieeeResult.hex}</code></dd></div>
-      <div><dt>Binary</dt><dd><code>{ieeeResult.bitString}</code></dd></div>
+      <div><dt>Hex</dt><dd><MathBlock latex={`\\texttt{${escapeLatex(ieeeResult.hex)}}`} /></dd></div>
       <div><dt>Sign</dt><dd>{ieeeResult.sign}</dd></div>
       <div><dt>Exponent field</dt><dd>{ieeeResult.exponentField}</dd></div>
-      <div><dt>Fraction</dt><dd><code>{ieeeResult.fraction}</code></dd></div>
-      <div><dt>Value</dt><dd>{ieeeResult.value}</dd></div>
+      <div><dt>Fraction</dt><dd><MathBlock latex={`\\texttt{${escapeLatex(ieeeResult.fraction)}}`} /></dd></div>
+      <div><dt>Value</dt><dd><MathText text={`$${ieeeResult.value}$`} /></dd></div>
     </dl>
   </section>
 {/if}
 
 {#if baseResult || normalResult || customResult || ieeeResult}
   <section class="panel">
-    <div class="btn-row" style="margin-top:0">
-      <button class="btn btn-ghost btn-small" type="button" onclick={copyLatex}
-        >{copyState || 'Copy full'} LaTeX</button
-      >
-      <button class="btn btn-ghost btn-small" type="button" onclick={downloadLatex}
-        >Download .tex</button
-      >
+    <div class="fp-preview-head">
+      <MathLabel latex={'\\LaTeX\\text{ preview}'} fallback="LaTeX preview" />
     </div>
+    <div class="latex-preview">
+      <LatexPreview latex={exportLatex()} />
+    </div>
+    <ExportBar latex={exportLatex()} filename="floating-point.tex" />
     <details class="details">
       <summary>LaTeX source</summary>
       <pre class="latex-code">{exportLatex()}</pre>
@@ -306,8 +352,10 @@ ${sections.join('\n\n')}
 {/if}
 
 <style>
-  .fp-modes {
-    margin-bottom: 0.9rem;
+  .fp-preview-head {
+    margin-bottom: 0.6rem;
+    color: var(--fg-dim);
+    font-size: 0.9rem;
   }
 
   .fp-controls {
@@ -347,21 +395,12 @@ ${sections.join('\n\n')}
     color: var(--fg-faint);
   }
 
-  .fp-card code,
-  .fp-form {
-    color: var(--accent);
-    font-family: var(--mono);
-    font-size: 1rem;
-    overflow-wrap: anywhere;
-  }
-
   .fp-card span {
     color: var(--fg-faint);
     font-size: 0.76rem;
   }
 
   .fp-form {
-    font-size: 1.15rem;
     margin: 0.8rem 0;
   }
 

@@ -2,17 +2,9 @@ import { readable } from 'svelte/store';
 
 type Lang = 'en' | 'ar';
 
-function initial(): Lang {
-  if (typeof document === 'undefined') return 'en';
-  return document.documentElement.lang === 'ar' ? 'ar' : 'en';
-}
-
-export const lang = readable<Lang>(initial(), (set) => {
-  if (typeof document === 'undefined') return;
-  const handler = (event: Event) => {
-    const detail = (event as CustomEvent<{ lang: Lang }>).detail;
-    set(detail?.lang === 'ar' ? 'ar' : 'en');
-  };
-  document.addEventListener('langchange', handler);
-  return () => document.removeEventListener('langchange', handler);
-});
+/**
+ * Arabic is intentionally frozen for now. Keeping the store means the
+ * remaining `data-ar` markup and dormant translations stay in place without
+ * any chance of a stale language event switching a tool into Arabic.
+ */
+export const lang = readable<Lang>('en');

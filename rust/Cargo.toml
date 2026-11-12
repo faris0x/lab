@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/mathcore", "crates/simplex", "crates/linalg", "crates/complexnum"]
+members = ["crates/mathcore", "crates/simplex", "crates/linalg", "crates/complexnum", "crates/graphnet"]
 resolver = "2"
 
 [profile.release]

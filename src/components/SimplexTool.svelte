@@ -1,11 +1,19 @@
 <script lang="ts">
   import MathBlock from './Math.svelte';
+  import LatexPreview from './LatexPreview.svelte';
   import MathText from './MathText.svelte';
+  import MathField from './MathField.svelte';
+  import Keypad from './Keypad.svelte';
   import LatexLogo from './LatexLogo.svelte';
+  import Tabs from './Tabs.svelte';
+  import ExportBar from './ExportBar.svelte';
+  import StepControls from './StepControls.svelte';
+  import StatusLine from './StatusLine.svelte';
   import { preloadMath } from '../lib/math';
   import { preload, solve, type SolveOutput } from '../lib/simplex';
   import { arDigits, localizeError } from '../lib/localize';
   import { lang } from '../lib/lang';
+  import { backspaceActive, clearActive, insertActive } from '../lib/active-field';
 
   const VAR_NAMES: string[] = ['x', 'y', 'z', 'w', 'v'];
 
@@ -51,7 +59,6 @@
 
   let step = $state(0);
   let tab = $state<'steps' | 'latex'>('steps');
-  let copyState = $state('');
 
   const vars = $derived(VAR_NAMES.slice(0, varCount));
   const current = $derived(
@@ -147,7 +154,6 @@
     busy = true;
     error = '';
     result = null;
-    copyState = '';
     tab = 'steps';
     step = 0;
     preloadMath();
@@ -159,47 +165,13 @@
         constraints
       });
     } catch (e) {
-      error = localizeError(e instanceof Error ? e.message : String(e));
+      const message = e instanceof Error ? e.message : String(e);
+      error = ar ? localizeError(message) : message;
     } finally {
       busy = false;
     }
   }
 
-  function go(delta: number) {
-    step = Math.max(0, Math.min(lastIndex, step + delta));
-  }
-
-  function selectTab(next: 'steps' | 'latex') {
-    tab = next;
-  }
-
-  async function copyLatex() {
-    if (!result) return;
-    try {
-      await navigator.clipboard.writeText(result.latex.document);
-      copyState = ar ? 'تم النسخ' : 'Copied';
-    } catch {
-      copyState = ar ? 'فشل النسخ' : 'Copy failed';
-    }
-    window.setTimeout(() => {
-      copyState = '';
-    }, 1600);
-  }
-
-  function downloadLatex() {
-    if (!result) return;
-    const blob = new Blob([result.latex.document], {
-      type: 'application/x-tex'
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = 'simplex-solution.tex';
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
 </script>
 
 <form
@@ -263,10 +235,13 @@
     <span class="operator">{@html (ar ? senseLabelsAr : senseLabels)[sense]}</span>
     {#each vars as variable, i}
       <span class="term">
-        <input
-          inputmode="decimal"
-          aria-label={`coefficient of ${variable}`}
+        <MathField
           bind:value={objective[i]}
+          format="number"
+          keypad={false}
+          compact
+          showEnter={false}
+          ariaLabel={`coefficient of ${variable}`}
         />
         <span class="term-var">{@html varLabels[i]}</span>
       </span>
@@ -284,10 +259,13 @@
       <div class="constraint-row">
         {#each vars as variable, i}
           <span class="term">
-            <input
-              inputmode="decimal"
-              aria-label={`constraint ${ci + 1}, coefficient of ${variable}`}
+            <MathField
               bind:value={constraint.coeffs[i]}
+              format="number"
+              keypad={false}
+              compact
+              showEnter={false}
+              ariaLabel={`constraint ${ci + 1}, coefficient of ${variable}`}
             />
             <span class="term-var">{@html varLabels[i]}</span>
           </span>
@@ -305,10 +283,13 @@
           <option value=">=">≥</option>
           <option value="=">=</option>
         </select>
-        <input
-          inputmode="decimal"
-          aria-label={`right-hand side of constraint ${ci + 1}`}
+        <MathField
           bind:value={constraint.rhs}
+          format="number"
+          keypad={false}
+          compact
+          showEnter={false}
+          ariaLabel={`right-hand side of constraint ${ci + 1}`}
         />
         <button
           class="btn btn-ghost btn-small"
@@ -319,6 +300,14 @@
       </div>
     {/each}
   </fieldset>
+
+  <Keypad
+    format="number"
+    showEnter={false}
+    onInsert={(latex) => insertActive(latex)}
+    onBackspace={() => backspaceActive()}
+    onClear={() => clearActive()}
+  />
 
   <div class="btn-row">
     <button class="btn" type="submit" disabled={busy}>
@@ -338,14 +327,11 @@
 
 {#if result}
   <section class="panel" aria-live="polite">
-    <div class="status-line">
-      <span
-        class="status"
-        class:status-ok={result.status === 'optimal'}
-        class:status-warn={result.status !== 'optimal'}>{statusLabel}</span
-      >
-      <span class="step-count">{countsLabel}</span>
-    </div>
+    <StatusLine
+      label={statusLabel}
+      meta={countsLabel}
+      tone={result.status === 'optimal' ? 'ok' : 'warn'}
+    />
 
     <ul class="summary">
       {#each result.summaryLatex as line}
@@ -366,20 +352,15 @@
       </div>
     </details>
 
-    <div class="tabs" role="tablist" aria-label={ar ? 'عرض الحل' : 'Solution view'}>
-      <button
-        class="tab"
-        role="tab"
-        aria-selected={tab === 'steps'}
-        onclick={() => selectTab('steps')} >{ar ? 'الجداول' : 'Tableaus'}</button
-      >
-      <button
-        class="tab"
-        role="tab"
-        aria-selected={tab === 'latex'}
-        onclick={() => selectTab('latex')} >{ar ? 'معاينة ' : 'preview '}<LatexLogo /></button
-      >
-    </div>
+    <Tabs
+      ariaLabel={ar ? 'عرض الحل' : 'Solution view'}
+      value={tab}
+      items={[
+        { id: 'steps', label: ar ? 'الجداول' : 'Tableaus' },
+        { id: 'latex', label: ar ? 'معاينة' : 'preview', latex: '\\LaTeX' }
+      ]}
+      onChange={(id) => (tab = id as 'steps' | 'latex')}
+    />
 
     {#if tab === 'steps'}
       {#if current}
@@ -399,49 +380,27 @@
           </ul>
         {/if}
 
-        <div class="step-controls">
-          <button
-            class="btn btn-ghost btn-small"
-            type="button"
-            disabled={step === 0}
-            onclick={() => go(-1)} >{ar ? 'السابق' : '← Previous'}</button
-          >
-          <input
-            type="range"
-            min="0"
-            max={lastIndex}
-            bind:value={step}
-            aria-label={ar ? 'خطوة الجدول' : 'Tableau step'}
-          />
-          <button
-            class="btn btn-ghost btn-small"
-            type="button"
-            disabled={step === lastIndex}
-            onclick={() => go(1)} >{ar ? 'التالي' : 'Next →'}</button
-          >
-          <span class="step-count"
-            >{ar
-              ? `الجدول ${arDigits(String(step + 1))} من ${arDigits(String(result.steps.length))}`
-              : `Tableau ${step + 1} of ${result.steps.length}`}</span
-          >
-        </div>
+        <StepControls
+          {step}
+          last={lastIndex}
+          label={ar
+            ? `الجدول ${arDigits(String(step + 1))} من ${arDigits(String(result.steps.length))}`
+            : `Tableau ${step + 1} of ${result.steps.length}`}
+          previous={ar ? 'السابق' : '← Previous'}
+          next={ar ? 'التالي' : 'Next →'}
+          onStep={(next) => (step = next)}
+        />
       {/if}
     {:else}
-      <div class="btn-row" style="margin-top:0">
-        <button class="btn btn-ghost btn-small" type="button" onclick={copyLatex}
-          >{copyState || (ar ? 'نسخ الكل' : 'Copy full')} <LatexLogo /></button
-        >
-        <button
-          class="btn btn-ghost btn-small"
-          type="button"
-          onclick={downloadLatex} >{ar ? 'تنزيل .tex' : 'Download .tex'}</button
-        >
-      </div>
+      <ExportBar
+        latex={result.latex.document}
+        filename="simplex-solution.tex"
+        copyLabel={ar ? 'نسخ الكل' : 'Copy full'}
+        downloadLabel={ar ? 'تنزيل .tex' : 'Download .tex'}
+      />
 
       <div class="latex-preview">
-        {#each result.latex.blocks as block}
-          <MathBlock latex={block} display />
-        {/each}
+        <LatexPreview latex={result.latex.document} />
       </div>
 
       <details class="details">
@@ -451,3 +410,12 @@
     {/if}
   </section>
 {/if}
+
+
+<style>
+  .term :global(.mathfield),
+  .constraint-row > :global(.mathfield) {
+    width: 5rem;
+    min-width: 3.6rem;
+  }
+</style>

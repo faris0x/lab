@@ -1,11 +1,12 @@
 ---
 import '../styles/tokens.css';
 import '../styles/lab.css';
+import { tools } from '../lib/tools';
 
 interface Props {
   title: string;
   description?: string;
-  current?: 'home' | 'simplex' | 'matrix' | 'complex' | 'logic' | 'graphs' | 'float' | 'boolean';
+  current?: string;
   math?: boolean;
 }
 
@@ -92,37 +93,13 @@ const schema = {
         </a>
         <nav class="nav" aria-label="Primary">
           <a href="/" aria-current={current === 'home' ? 'page' : undefined} data-ar="الأدوات">Tools</a>
-          <a
-            href="/optimisation"
-            aria-current={current === 'simplex' ? 'page' : undefined}
-            data-ar="السمبلكس">Simplex</a
-          >
-          <a
-            href="/matrix"
-            aria-current={current === 'matrix' ? 'page' : undefined}
-            data-ar="المصفوفات">Matrix</a
-          >
-          <a
-            href="/complex"
-            aria-current={current === 'complex' ? 'page' : undefined}
-            data-ar="الأعداد المركبة">Complex</a
-          >
-          <a
-            href="/logic"
-            aria-current={current === 'logic' ? 'page' : undefined}>Logic</a
-          >
-          <a
-            href="/graphs"
-            aria-current={current === 'graphs' ? 'page' : undefined}>Graphs</a
-          >
-          <a
-            href="/floating-point"
-            aria-current={current === 'float' ? 'page' : undefined}>Float</a
-          >
-          <a
-            href="/boolean"
-            aria-current={current === 'boolean' ? 'page' : undefined}>Boolean</a
-          >
+          {tools.map((tool) => (
+            <a
+              href={tool.href}
+              aria-current={current === tool.key ? 'page' : undefined}
+              data-ar={tool.navAr}
+            >{tool.nav}</a>
+          ))}
           <a href="https://faris0x.dev" rel="noopener">faris0x.dev</a>
           <button
             class="theme-toggle"

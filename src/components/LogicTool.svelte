@@ -1,6 +1,12 @@
 <script lang="ts">
-  import LatexLogo from './LatexLogo.svelte';
+  import MathField from './MathField.svelte';
+  import MathBlock from './Math.svelte';
+  import LatexPreview from './LatexPreview.svelte';
+  import MathText from './MathText.svelte';
+  import Tabs from './Tabs.svelte';
+  import ExportBar from './ExportBar.svelte';
   import { build, type LogicResult } from '../lib/logic';
+  import { logicLabelToLatex } from '../lib/math-input';
 
   type Example = 'modus' | 'demorgan' | 'tautology' | 'contradiction';
 
@@ -8,11 +14,9 @@
   let result = $state<LogicResult | null>(null);
   let error = $state('');
   let tab = $state<'table' | 'latex'>('table');
-  let copyState = $state('');
 
   function run() {
     error = '';
-    copyState = '';
     result = null;
     try {
       result = build(formula);
@@ -31,32 +35,6 @@
     else if (kind === 'tautology') formula = 'p | ~p';
     else formula = 'p & ~p';
     run();
-  }
-
-  async function copyLatex() {
-    if (!result) return;
-    try {
-      await navigator.clipboard.writeText(result.latex);
-      copyState = 'Copied';
-    } catch {
-      copyState = 'Copy failed';
-    }
-    window.setTimeout(() => {
-      copyState = '';
-    }, 1600);
-  }
-
-  function downloadLatex() {
-    if (!result) return;
-    const blob = new Blob([result.latex], { type: 'application/x-tex' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = 'truth-table.tex';
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   const verdictLabel = $derived(
@@ -79,15 +57,10 @@
 >
   <h2 class="panel-title">Formula</h2>
 
-  <label class="field formula-field">
-    <span>Proposition</span>
-    <input
-      bind:value={formula}
-      aria-label="Propositional formula"
-      spellcheck="false"
-      autocomplete="off"
-    />
-  </label>
+  <div class="formula-field">
+    <span class="field-label">Proposition</span>
+    <MathField bind:value={formula} format="logic" showEnter={false} ariaLabel="Propositional formula" onEnter={run} />
+  </div>
 
   <div class="example-row">
     <span class="example-label">Examples</span>
@@ -115,9 +88,9 @@
   </div>
 
   <p class="hint">
-    Use letters for propositions, <code>~</code> for not, <code>&amp;</code> for and,
-    <code>|</code> for or, <code>^</code> for xor, <code>-&gt;</code> for implication and <code>&lt;-&gt;</code>
-    for equivalence. Parentheses work as expected.
+    Use the keypad for logical symbols, or type letters and the operators
+    <code>~</code>, <code>&amp;</code>, <code>|</code>, <code>^</code>,
+    <code>-&gt;</code> and <code>&lt;-&gt;</code>.
   </p>
 
   {#if error}
@@ -139,20 +112,19 @@
       >
     </div>
 
-    <div class="tabs" role="tablist" aria-label="Truth table view">
-      <button
-        class="tab"
-        role="tab"
-        aria-selected={tab === 'table'}
-        onclick={() => (tab = 'table')}>Table</button
-      >
-      <button
-        class="tab"
-        role="tab"
-        aria-selected={tab === 'latex'}
-        onclick={() => (tab = 'latex')}><LatexLogo /> preview</button
-      >
+    <div class="result-math">
+      <MathBlock latex={logicLabelToLatex(result.formula)} display />
     </div>
+
+    <Tabs
+      ariaLabel="Truth table view"
+      value={tab}
+      items={[
+        { id: 'table', label: 'Table' },
+        { id: 'latex', label: 'preview', latex: '\\LaTeX' }
+      ]}
+      onChange={(id) => (tab = id as 'table' | 'latex')}
+    />
 
     {#if tab === 'table'}
       <div class="truth-wrap">
@@ -160,7 +132,7 @@
           <thead>
             <tr>
               {#each result.columns as column}
-                <th scope="col">{column.label}</th>
+                <th scope="col"><MathText text={`$${logicLabelToLatex(column.label)}$`} /></th>
               {/each}
             </tr>
           </thead>
@@ -168,7 +140,9 @@
             {#each result.rows as row}
               <tr>
                 {#each row.values as value}
-                  <td class:truth-true={value} class:truth-false={!value}>{value ? 'T' : 'F'}</td>
+                  <td class:truth-true={value} class:truth-false={!value}
+                    ><MathText text={value ? '$\\top$' : '$\\bot$'} /></td
+                  >
                 {/each}
               </tr>
             {/each}
@@ -185,15 +159,14 @@
         {/if}
       </p>
     {:else}
-      <div class="btn-row" style="margin-top:0">
-        <button class="btn btn-ghost btn-small" type="button" onclick={copyLatex}
-          >{copyState || 'Copy full'} <LatexLogo /></button
-        >
-        <button class="btn btn-ghost btn-small" type="button" onclick={downloadLatex}
-          >Download .tex</button
-        >
+      <div class="latex-preview">
+        <LatexPreview latex={result.latex} />
       </div>
-      <pre class="latex-code">{result.latex}</pre>
+      <ExportBar latex={result.latex} filename="truth-table.tex" />
+      <details class="details">
+        <summary>LaTeX source</summary>
+        <pre class="latex-code">{result.latex}</pre>
+      </details>
     {/if}
   </section>
 {/if}
@@ -206,10 +179,12 @@
     margin-bottom: 0.8rem;
   }
 
-  .formula-field input {
-    width: 100%;
+  .field-label {
     font-family: var(--mono);
-    font-size: 0.95rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fg-faint);
   }
 
   .truth-wrap {

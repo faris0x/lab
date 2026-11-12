@@ -1,18 +1,29 @@
 <script lang="ts">
-  import LatexLogo from './LatexLogo.svelte';
   import MathBlock from './Math.svelte';
+  import LatexPreview from './LatexPreview.svelte';
   import MathText from './MathText.svelte';
-  import { runGraph, type GraphAlgorithm, type GraphResult } from '../lib/graph';
+  import MathField from './MathField.svelte';
+  import Keypad from './Keypad.svelte';
+  import Tabs from './Tabs.svelte';
+  import ExportBar from './ExportBar.svelte';
+  import StatusLine from './StatusLine.svelte';
+  import {
+    preloadGraph,
+    runGraph,
+    type GraphAlgorithm,
+    type GraphResult
+  } from '../lib/graph';
+  import { backspaceActive, clearActive, insertActive } from '../lib/active-field';
 
   const initialLabels = ['A', 'B', 'C', 'D', 'E'];
-  const initialWeights: (number | null)[][] = Array.from({ length: 5 }, () => Array(5).fill(null));
-  initialWeights[0][1] = 4;
-  initialWeights[0][2] = 2;
-  initialWeights[1][2] = 1;
-  initialWeights[1][3] = 5;
-  initialWeights[2][3] = 8;
-  initialWeights[2][4] = 10;
-  initialWeights[3][4] = 2;
+  const initialWeights: string[][] = Array.from({ length: 5 }, () => Array(5).fill(''));
+  initialWeights[0][1] = '4';
+  initialWeights[0][2] = '2';
+  initialWeights[1][2] = '1';
+  initialWeights[1][3] = '5';
+  initialWeights[2][3] = '8';
+  initialWeights[2][4] = '10';
+  initialWeights[3][4] = '2';
   for (let i = 0; i < 5; i += 1) {
     for (let j = i + 1; j < 5; j += 1) initialWeights[j][i] = initialWeights[i][j];
   }
@@ -26,8 +37,8 @@
   let target = $state(4);
   let result = $state<GraphResult | null>(null);
   let error = $state('');
+  let busy = $state(false);
   let tab = $state<'steps' | 'latex'>('steps');
-  let copyState = $state('');
 
   function applyLabels() {
     const next = labelText
@@ -44,7 +55,7 @@
     }
     labels = next.map((label) => label.toUpperCase());
     weights = Array.from({ length: labels.length }, (_, i) =>
-      Array.from({ length: labels.length }, (_, j) => weights[i]?.[j] ?? null)
+      Array.from({ length: labels.length }, (_, j) => weights[i]?.[j] ?? '')
     );
     source = Math.min(source, labels.length - 1);
     target = Math.min(target, labels.length - 1);
@@ -53,50 +64,25 @@
   }
 
   function setWeight(i: number, j: number, value: string) {
-    const parsed = value.trim() === '' ? null : Number(value);
-    if (parsed !== null && (!Number.isFinite(parsed) || parsed < 0)) return;
     const next = weights.map((row) => [...row]);
-    next[i][j] = parsed;
-    if (!directed) next[j][i] = parsed;
+    next[i][j] = value;
+    if (!directed) next[j][i] = value;
     weights = next;
   }
 
-  function run() {
+  async function run() {
     error = '';
-    copyState = '';
     result = null;
+    busy = true;
+    preloadGraph();
     try {
-      result = runGraph({ labels, directed, weights }, algorithm, source, target);
+      result = await runGraph({ labels, directed, weights }, algorithm, source, target);
       tab = 'steps';
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
+    } finally {
+      busy = false;
     }
-  }
-
-  async function copyLatex() {
-    if (!result) return;
-    try {
-      await navigator.clipboard.writeText(result.latex);
-      copyState = 'Copied';
-    } catch {
-      copyState = 'Copy failed';
-    }
-    window.setTimeout(() => {
-      copyState = '';
-    }, 1600);
-  }
-
-  function downloadLatex() {
-    if (!result) return;
-    const blob = new Blob([result.latex], { type: 'application/x-tex' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `graph-${algorithm}.tex`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   run();
@@ -106,8 +92,9 @@
   class="panel"
   onsubmit={(event: SubmitEvent) => {
     event.preventDefault();
-    run();
+    void run();
   }}
+  onfocusin={() => preloadGraph()}
 >
   <h2 class="panel-title">Graph</h2>
 
@@ -151,20 +138,23 @@
       <thead>
         <tr>
           <th></th>
-          {#each labels as label}<th>{label}</th>{/each}
+          {#each labels as label}<th><MathText text={`$${label}$`} /></th>{/each}
         </tr>
       </thead>
       <tbody>
         {#each labels as rowLabel, i}
           <tr>
-            <th>{rowLabel}</th>
+            <th><MathText text={`$${rowLabel}$`} /></th>
             {#each labels as _column, j}
               <td>
-                <input
-                  inputmode="numeric"
-                  value={weights[i]?.[j] ?? ''}
-                  aria-label={`${rowLabel} to ${labels[j]} weight`}
-                  oninput={(event: Event) => setWeight(i, j, (event.currentTarget as HTMLInputElement).value)}
+                <MathField
+                  bind:value={weights[i][j]}
+                  format="number"
+                  keypad={false}
+                  compact
+                  showEnter={false}
+                  ariaLabel={`${rowLabel} to ${labels[j]} weight`}
+                  onValueChange={(value) => setWeight(i, j, value)}
                 />
               </td>
             {/each}
@@ -174,14 +164,23 @@
     </table>
   </div>
 
+  <Keypad
+    format="number"
+    showEnter={false}
+    onInsert={(latex) => insertActive(latex)}
+    onBackspace={() => backspaceActive()}
+    onClear={() => clearActive()}
+  />
+
   <div class="btn-row">
-    <button class="btn" type="submit">Run algorithm</button>
+    <button class="btn" type="submit" disabled={busy}>{busy ? 'Running…' : 'Run algorithm'}</button>
     <button class="btn btn-ghost" type="button" onclick={applyLabels}>Apply labels</button>
   </div>
 
   <p class="hint">
-    Leave a cell blank for no edge. Weights must be non-negative. The matrix is
-    mirrored automatically for undirected graphs. Node labels are one character.
+    Leave a cell blank for no edge. Weights may be integers, decimals or
+    fractions; the Rust/WASM engine keeps them exact. The matrix is mirrored
+    automatically for undirected graphs. Spanning trees need an undirected graph.
   </p>
 
   {#if error}<p class="error" role="alert">{error}</p>{/if}
@@ -189,19 +188,25 @@
 
 {#if result}
   <section class="panel" aria-live="polite">
-    <div class="status-line">
-      <span class="status status-ok">{result.title}</span>
-      <span class="step-count">{result.steps.length} step{result.steps.length === 1 ? '' : 's'}</span>
-    </div>
+    <StatusLine
+      label={result.title}
+      meta={`${result.steps.length} step${result.steps.length === 1 ? '' : 's'}`}
+      tone="ok"
+    />
 
     <ul class="summary">
-      {#each result.summary as line}<li>{line}</li>{/each}
+      {#each result.summary as line}<li><MathText text={line} /></li>{/each}
     </ul>
 
-    <div class="tabs" role="tablist" aria-label="Graph view">
-      <button class="tab" role="tab" aria-selected={tab === 'steps'} onclick={() => (tab = 'steps')}>Working</button>
-      <button class="tab" role="tab" aria-selected={tab === 'latex'} onclick={() => (tab = 'latex')}><LatexLogo /> preview</button>
-    </div>
+    <Tabs
+      ariaLabel="Graph view"
+      value={tab}
+      items={[
+        { id: 'steps', label: 'Working' },
+        { id: 'latex', label: 'preview', latex: '\\LaTeX' }
+      ]}
+      onChange={(id) => (tab = id as 'steps' | 'latex')}
+    />
 
     {#if tab === 'steps'}
       <ol class="graph-steps">
@@ -213,13 +218,14 @@
         {/each}
       </ol>
     {:else}
-      <div class="btn-row" style="margin-top:0">
-        <button class="btn btn-ghost btn-small" type="button" onclick={copyLatex}
-          >{copyState || 'Copy full'} <LatexLogo /></button
-        >
-        <button class="btn btn-ghost btn-small" type="button" onclick={downloadLatex}>Download .tex</button>
+      <div class="latex-preview">
+        <LatexPreview latex={result.latex} />
       </div>
-      <pre class="latex-code">{result.latex}</pre>
+      <ExportBar latex={result.latex} filename={`graph-${algorithm}.tex`} />
+      <details class="details">
+        <summary>LaTeX source</summary>
+        <pre class="latex-code">{result.latex}</pre>
+      </details>
     {/if}
   </section>
 {/if}
@@ -270,16 +276,9 @@
     background: var(--bg-soft);
   }
 
-  .graph-matrix input {
-    width: 3rem;
-    border: 0;
-    background: transparent;
-    text-align: center;
-    font-family: var(--mono);
-  }
-
-  .graph-matrix input:focus-visible {
-    outline: 2px solid var(--accent);
+  .graph-matrix :global(.mathfield) {
+    width: 100%;
+    min-width: 2.6rem;
   }
 
   .graph-steps {

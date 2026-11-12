@@ -2,7 +2,13 @@
   import Argand from './Argand.svelte';
   import LatexLogo from './LatexLogo.svelte';
   import MathBlock from './Math.svelte';
+  import LatexPreview from './LatexPreview.svelte';
   import MathText from './MathText.svelte';
+  import MathField from './MathField.svelte';
+  import Keypad from './Keypad.svelte';
+  import Tabs from './Tabs.svelte';
+  import ExportBar from './ExportBar.svelte';
+  import { backspaceActive, clearActive, insertActive } from '../lib/active-field';
   import { preloadMath } from '../lib/math';
   import {
     preloadComplex,
@@ -42,7 +48,6 @@
   let error = $state('');
   let result = $state<ComplexOutput | null>(null);
   let tab = $state<'steps' | 'latex'>('steps');
-  let copyState = $state('');
 
   function negative(value: string): boolean {
     return value.trim().startsWith('-');
@@ -62,7 +67,6 @@
     result = null;
     error = '';
     tab = 'steps';
-    copyState = '';
     if (kind === 'multiply') {
       operation = 'arithmetic';
       op = '*';
@@ -107,7 +111,6 @@
     busy = true;
     result = null;
     tab = 'steps';
-    copyState = '';
     preloadMath();
     try {
       result = await solveComplex({
@@ -118,39 +121,13 @@
         n: operation === 'power' || operation === 'roots' ? n : undefined
       });
     } catch (e) {
-      error = localizeError(e instanceof Error ? e.message : String(e));
+      const message = e instanceof Error ? e.message : String(e);
+      error = ar ? localizeError(message) : message;
     } finally {
       busy = false;
     }
   }
 
-  async function copyLatex() {
-    if (!result) return;
-    try {
-      await navigator.clipboard.writeText(result.latex.document);
-      copyState = ar ? 'تم النسخ' : 'Copied';
-    } catch {
-      copyState = ar ? 'فشل النسخ' : 'Copy failed';
-    }
-    window.setTimeout(() => {
-      copyState = '';
-    }, 1600);
-  }
-
-  function downloadLatex() {
-    if (!result) return;
-    const blob = new Blob([result.latex.document], {
-      type: 'application/x-tex'
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `complex-${result.operation}.tex`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
 </script>
 
 <form
@@ -213,46 +190,31 @@
   <div class="complex-inputs">
     <div class="complex-row">
       <span class="complex-label">{@html labels.z} =</span>
-      <input
-        inputmode="decimal"
-        placeholder="0"
-        autocomplete="off"
-        aria-label="real part of z"
-        bind:value={zRe}
-      />
+      <MathField bind:value={zRe} format="number" ariaLabel="real part of z" keypad={false} />
       <span class="operator">{negative(zIm) ? '' : '+'}</span>
-      <input
-        inputmode="decimal"
-        placeholder="0"
-        autocomplete="off"
-        aria-label="imaginary part of z"
-        bind:value={zIm}
-      />
+      <MathField bind:value={zIm} format="number" ariaLabel="imaginary part of z" keypad={false} />
       <span class="complex-i">{@html labels.i}</span>
     </div>
 
     {#if operation === 'arithmetic'}
       <div class="complex-row">
         <span class="complex-label">{@html labels.w} =</span>
-        <input
-          inputmode="decimal"
-          placeholder="0"
-          autocomplete="off"
-          aria-label="real part of w"
-          bind:value={wRe}
-        />
+        <MathField bind:value={wRe} format="number" ariaLabel="real part of w" keypad={false} />
         <span class="operator">{negative(wIm) ? '' : '+'}</span>
-        <input
-          inputmode="decimal"
-          placeholder="0"
-          autocomplete="off"
-          aria-label="imaginary part of w"
-          bind:value={wIm}
-        />
+        <MathField bind:value={wIm} format="number" ariaLabel="imaginary part of w" keypad={false} />
         <span class="complex-i">{@html labels.i}</span>
       </div>
     {/if}
   </div>
+
+  <Keypad
+    format="number"
+    showEnter={false}
+    onInsert={(latex) => insertActive(latex)}
+    onBackspace={() => backspaceActive()}
+    onClear={() => clearActive()}
+    onEnter={() => void run()}
+  />
 
   <div class="btn-row">
     <button class="btn" type="submit" disabled={busy}>
@@ -284,20 +246,15 @@
 
     <Argand points={result.argand.points} circles={result.argand.circles} />
 
-    <div class="tabs" role="tablist" aria-label={ar ? 'عرض العمل' : 'Working view'}>
-      <button
-        class="tab"
-        role="tab"
-        aria-selected={tab === 'steps'}
-        onclick={() => (tab = 'steps')} >{ar ? 'الخطوات' : 'Steps'}</button
-      >
-      <button
-        class="tab"
-        role="tab"
-        aria-selected={tab === 'latex'}
-        onclick={() => (tab = 'latex')} >{ar ? 'معاينة ' : 'preview '}<LatexLogo /></button
-      >
-    </div>
+    <Tabs
+      ariaLabel={ar ? 'عرض العمل' : 'Working view'}
+      value={tab}
+      items={[
+        { id: 'steps', label: ar ? 'الخطوات' : 'Steps' },
+        { id: 'latex', label: ar ? 'معاينة' : 'preview', latex: '\\LaTeX' }
+      ]}
+      onChange={(id) => (tab = id as 'steps' | 'latex')}
+    />
 
     {#if tab === 'steps'}
       <ul class="step-prose">
@@ -306,18 +263,15 @@
         {/each}
       </ul>
     {:else}
-      <div class="btn-row" style="margin-top:0">
-        <button class="btn btn-ghost btn-small" type="button" onclick={copyLatex}
-          >{copyState || (ar ? 'نسخ الكل' : 'Copy full')} <LatexLogo /></button
-        >
-        <button class="btn btn-ghost btn-small" type="button" onclick={downloadLatex}
-           >{ar ? 'تنزيل .tex' : 'Download .tex'}</button>
-      </div>
+      <ExportBar
+        latex={result.latex.document}
+        filename={`complex-${result.operation}.tex`}
+        copyLabel={ar ? 'نسخ الكل' : 'Copy full'}
+        downloadLabel={ar ? 'تنزيل .tex' : 'Download .tex'}
+      />
 
       <div class="latex-preview">
-        {#each result.latex.blocks as block}
-          <MathBlock latex={block} display />
-        {/each}
+        <LatexPreview latex={result.latex.document} />
       </div>
 
       <details class="details">

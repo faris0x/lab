@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p public/wasm
 
-for crate in simplex linalg complexnum; do
+for crate in simplex linalg complexnum graphnet; do
   cargo build \
     --manifest-path rust/Cargo.toml \
     --target wasm32-unknown-unknown \

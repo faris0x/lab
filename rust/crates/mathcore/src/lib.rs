@@ -161,6 +161,24 @@ impl Rat {
     }
 }
 
+impl std::ops::Add for Rat {
+    type Output = Rat;
+
+    fn add(self, other: Rat) -> Rat {
+        Rat::new(
+            self.n as i128 * other.d as i128 + other.n as i128 * self.d as i128,
+            self.d as i128 * other.d as i128,
+        )
+        .expect("rational overflow")
+    }
+}
+
+impl Default for Rat {
+    fn default() -> Self {
+        Rat::ZERO
+    }
+}
+
 impl PartialOrd for Rat {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp_rat(*other))
