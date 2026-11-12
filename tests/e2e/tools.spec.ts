@@ -56,7 +56,7 @@ test('expands a Maclaurin series', async ({ page }) => {
 
 test('accepts ln(1-3x) and offers function keys', async ({ page }) => {
   await page.goto('/series');
-  await expect(page.getByRole('button', { name: 'sine' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'sine', exact: true })).toBeVisible();
   const field = page.locator('math-field').first();
   await field.waitFor();
   await field.evaluate((element) => {
