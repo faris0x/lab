@@ -78,10 +78,11 @@ test('typing ln(1-3x) into the field works', async ({ page }) => {
     input.value = '';
     input.dispatchEvent(new Event('input', { bubbles: true }));
   });
-  await field.click();
+  await field.focus();
   await page.keyboard.type('ln(1-3x)');
-  await page.getByRole('button', { name: 'Expand', exact: true }).click();
   const latex = await field.evaluate((element) => (element as HTMLElement & { getValue: (format: string) => string }).getValue('latex'));
+  expect(latex, 'MathLive should contain the typed expression').not.toBe('');
+  await page.getByRole('button', { name: 'Expand', exact: true }).click();
   const errorText = await page.locator('.error').textContent();
   expect(errorText, `field latex: ${latex}`).toBeNull();
   await expect(page.locator('.status')).toHaveText('Maclaurin series');
