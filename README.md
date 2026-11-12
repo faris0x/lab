@@ -1,7 +1,6 @@
 # lab
 
-`lab.faris0x.dev`: exact, step-by-step mathematics tools, deployed as a static
-site on GitHub Pages.
+`lab.faris0x.dev`: exact, step-by-step mathematics tools.
 
 The live tools are **Simplex & Big-M** at `/optimisation`, the **Matrix
 toolkit** at `/matrix`, **Complex numbers** at `/complex`, **Truth tables** at
@@ -89,17 +88,6 @@ for simplex; matrices and row operations for linear algebra; distance and
 spanning-tree decisions for graphs. The preview is parsed from the same
 document that is copied or downloaded, so the screen and the `.tex` file
 cannot drift.
-
-## Deployment
-
-- Repository: `https://github.com/faris0x/lab`
-- Pages workflow: `.github/workflows/pages.yml`
-- Custom domain: `lab.faris0x.dev` (`public/CNAME`)
-- Required Cloudflare record: `CNAME | lab | faris0x.github.io | DNS only`
-- Enable **Enforce HTTPS** in the repository's Pages settings after DNS has
-  propagated and the certificate has been issued.
-
-The portfolio is deployed separately from `faris0x/faris0x.github.io`.
 
 ## Measured budget (production build, current)
 
