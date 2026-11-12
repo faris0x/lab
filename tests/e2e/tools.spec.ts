@@ -81,7 +81,9 @@ test('typing ln(1-3x) into the field works', async ({ page }) => {
   await field.click();
   await page.keyboard.type('ln(1-3x)');
   await page.getByRole('button', { name: 'Expand', exact: true }).click();
-  await expect(page.locator('.error')).toHaveCount(0);
+  const latex = await field.evaluate((element) => (element as HTMLElement & { getValue: (format: string) => string }).getValue('latex'));
+  const errorText = await page.locator('.error').textContent();
+  expect(errorText, `field latex: ${latex}`).toBeNull();
   await expect(page.locator('.status')).toHaveText('Maclaurin series');
 });
 
