@@ -215,7 +215,7 @@ function decimal(value: number): string {
 export function encodeCustom(valueText: string, exponentBits: number, mantissaBits: number): CustomFloatResult {
   if (exponentBits < 2 || exponentBits > 8) throw new Error('Use between 2 and 8 exponent bits.');
   if (mantissaBits < 2 || mantissaBits > 24) throw new Error('Use between 2 and 24 mantissa bits.');
-  const { num, den } = parseRational(valueText, 10);
+  const { num } = parseRational(valueText, 10);
   const sign = num < 0n ? 1 : 0;
   if (num === 0n) {
     const bits = '0'.repeat(exponentBits + mantissaBits + 1);
@@ -316,7 +316,6 @@ export function encodeIeee(valueText: string, kind: 'single' | 'double'): IeeeRe
   const sign = Number(bits[0]);
   const exponentField = Number.parseInt(bits.slice(1, 1 + exponentBits), 2);
   const fraction = bits.slice(1 + exponentBits);
-  const bias = 2 ** (exponentBits - 1) - 1;
   const max = 2 ** exponentBits - 1;
   const classification =
     exponentField === max

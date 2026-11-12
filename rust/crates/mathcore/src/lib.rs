@@ -4,6 +4,8 @@
 //! undergraduate problems stay well inside `i64` once reduced; overflowing
 //! returns an error rather than a silently wrong answer.
 
+#![allow(clippy::should_implement_trait)]
+
 use std::cmp::Ordering;
 use std::fmt;
 
@@ -63,12 +65,14 @@ impl Rat {
             let int_digits = int_part.trim_start_matches(['+', '-']);
             let digits = format!(
                 "{}{}",
-                if int_digits.is_empty() { "0" } else { int_digits },
+                if int_digits.is_empty() {
+                    "0"
+                } else {
+                    int_digits
+                },
                 frac_part
             );
-            let n: i128 = digits
-                .parse()
-                .map_err(|_| format!("invalid number: {s}"))?;
+            let n: i128 = digits.parse().map_err(|_| format!("invalid number: {s}"))?;
             let d = 10i128.pow(frac_part.len() as u32);
             return Rat::new(sign * n, d);
         }
@@ -90,20 +94,14 @@ impl Rat {
     }
 
     pub fn mul(self, o: Self) -> Result<Self, String> {
-        Rat::new(
-            self.n as i128 * o.n as i128,
-            self.d as i128 * o.d as i128,
-        )
+        Rat::new(self.n as i128 * o.n as i128, self.d as i128 * o.d as i128)
     }
 
     pub fn div(self, o: Self) -> Result<Self, String> {
         if o.n == 0 {
             return Err("division by zero".into());
         }
-        Rat::new(
-            self.n as i128 * o.d as i128,
-            self.d as i128 * o.n as i128,
-        )
+        Rat::new(self.n as i128 * o.d as i128, self.d as i128 * o.n as i128)
     }
 
     pub fn neg(self) -> Self {
@@ -161,18 +159,6 @@ impl Rat {
     }
 }
 
-impl std::ops::Add for Rat {
-    type Output = Rat;
-
-    fn add(self, other: Rat) -> Rat {
-        Rat::new(
-            self.n as i128 * other.d as i128 + other.n as i128 * self.d as i128,
-            self.d as i128 * other.d as i128,
-        )
-        .expect("rational overflow")
-    }
-}
-
 impl Default for Rat {
     fn default() -> Self {
         Rat::ZERO
@@ -181,7 +167,7 @@ impl Default for Rat {
 
 impl PartialOrd for Rat {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp_rat(*other))
+        Some(self.cmp(other))
     }
 }
 
@@ -403,6 +389,13 @@ mod tests {
         assert_eq!(r, Rat::new(-3, 4).unwrap());
         assert_eq!(r.plain(), "-3/4");
         assert_eq!(r.latex(), "-\\frac{3}{4}");
+    }
+
+    #[test]
+    fn overflow_returns_error_instead_of_panicking() {
+        let a = Rat::new(i64::MAX as i128 - 1, 1).unwrap();
+        let b = Rat::int(2);
+        assert_eq!(a.add(b).unwrap_err(), "number too large");
     }
 
     #[test]

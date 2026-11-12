@@ -177,6 +177,92 @@ export function latexToLogic(latex: string): string {
   return value;
 }
 
+function replaceLatexFractions(source: string): string {
+  let value = source;
+  let guard = 0;
+  while (guard < 50) {
+    guard += 1;
+    const match = /\\[dt]?frac\s*/.exec(value);
+    if (!match) break;
+    const start = match.index;
+    const top = readArgument(value, start + match[0].length);
+    if (!top) break;
+    const bottom = readArgument(value, top.end);
+    if (!bottom) break;
+    value =
+      value.slice(0, start) +
+      `(${replaceLatexFractions(top.body)})/(${replaceLatexFractions(bottom.body)})` +
+      value.slice(bottom.end);
+  }
+  return value;
+}
+
+function replaceLatexSqrts(source: string): string {
+  let value = source;
+  let guard = 0;
+  while (guard < 50) {
+    guard += 1;
+    const match = /\\sqrt\s*/.exec(value);
+    if (!match) break;
+    const start = match.index;
+    const argumentStart = start + match[0].length;
+    if (value[argumentStart] === '[') {
+      break;
+    }
+    const argument = readArgument(value, argumentStart);
+    if (!argument) break;
+    value =
+      value.slice(0, start) +
+      `sqrt(${replaceLatexSqrts(argument.body)})` +
+      value.slice(argument.end);
+  }
+  return value;
+}
+
+function replaceLatexSuperscripts(source: string): string {
+  let value = source;
+  let guard = 0;
+  while (guard < 50) {
+    guard += 1;
+    const match = /\^\s*\{/.exec(value);
+    if (!match) break;
+    const start = match.index;
+    const brace = start + match[0].length - 1;
+    const group = readGroup(value, brace);
+    if (!group) break;
+    value =
+      value.slice(0, start) +
+      `^(${replaceLatexSuperscripts(group.body)})` +
+      value.slice(group.end);
+  }
+  return value;
+}
+
+/** Convert a LaTeX expression to the plain syntax used by the series parser. */
+export function latexToExpression(latex: string): string {
+  let value = stripWrappers(latex);
+  value = value.replace(/\\left\s*/g, '').replace(/\\right\s*/g, '');
+  value = replaceLatexFractions(value);
+  value = replaceLatexSqrts(value);
+  value = replaceLatexSuperscripts(value);
+  value = value
+    .replace(/\\(?:cdot|times|ast)\b/g, '*')
+    .replace(/\\div\b/g, '/')
+    .replace(/\\pi\b/g, 'pi')
+    .replace(/\\(sinh|cosh|sin|cos|tan|exp|ln)\b/g, '$1')
+    .replace(/[{}]/g, '');
+  return value.replace(/\s+/g, ' ').trim();
+}
+
+/** Render the plain series syntax back into LaTeX for MathLive. */
+export function expressionToLatex(value: string): string {
+  return asciiDigits(value.trim())
+    .replace(/\b(sinh|cosh|sin|cos|tan|exp|ln)\b/g, '\\$1')
+    .replace(/\bpi\b/g, '\\pi')
+    .replace(/sqrt\(([^()]*)\)/g, '\\sqrt{$1}')
+    .replace(/\*/g, '\\cdot ');
+}
+
 export function latexToBase(latex: string, _base: Base): string {
   let value = asciiDigits(stripWrappers(latex));
   value = value.replace(/\\mathrm\{([^{}]*)\}/g, '$1').replace(/\\text\{([^{}]*)\}/g, '$1');
@@ -186,6 +272,7 @@ export function latexToBase(latex: string, _base: Base): string {
 
 export function latexToCanonical(latex: string, format: MathFormat, base: Base = 10): string {
   if (format === 'logic') return latexToLogic(latex);
+  if (format === 'expression') return latexToExpression(latex);
   if (format === 'base') return latexToBase(latex, base);
   return latexToNumber(latex);
 }
@@ -214,8 +301,9 @@ export function logicToLatex(value: string): string {
     .trim();
 }
 
-export function canonicalToLatex(value: string, format: MathFormat, base: Base = 10): string {
+export function canonicalToLatex(value: string, format: MathFormat, _base: Base = 10): string {
   if (format === 'logic') return logicToLatex(value);
+  if (format === 'expression') return expressionToLatex(value);
   if (format === 'base') return value.trim().replace(/[A-F]/g, (letter) => `\\mathrm{${letter}}`);
   return numberToLatex(value);
 }

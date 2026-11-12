@@ -18,6 +18,7 @@
     value = $bindable(''),
     format = 'number',
     base = 10,
+    variables = ['x', 'y', 'z'],
     ariaLabel = 'Mathematical input',
     placeholder = '',
     keypad = true,
@@ -30,6 +31,7 @@
     value?: string;
     format?: MathFormat;
     base?: Base;
+    variables?: string[];
     ariaLabel?: string;
     placeholder?: string;
     keypad?: boolean;
@@ -97,7 +99,7 @@
       if (MathfieldElement) MathfieldElement.locale = 'en';
       if (!alive || !host) return;
 
-      const element = document.createElement('math-field');
+      const element: any = document.createElement('math-field');
       element.setAttribute('aria-label', ariaLabel);
       element.setAttribute('math-virtual-keyboard-policy', 'manual');
       element.mathVirtualKeyboardPolicy = 'manual';
@@ -143,6 +145,7 @@
   <Keypad
     {format}
     {base}
+    {variables}
     onInsert={(latex) => api.insert(latex)}
     onBackspace={() => api.backspace()}
     onClear={() => api.clear()}

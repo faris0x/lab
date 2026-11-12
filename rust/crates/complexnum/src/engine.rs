@@ -229,7 +229,11 @@ fn isqrt(n: i64) -> Option<i64> {
         return None;
     }
     let r = (n as f64).sqrt().round() as i64;
-    if r * r == n { Some(r) } else { None }
+    if r * r == n {
+        Some(r)
+    } else {
+        None
+    }
 }
 
 fn sqrt_exact(r: Rat) -> Option<Rat> {
@@ -239,7 +243,11 @@ fn sqrt_exact(r: Rat) -> Option<Rat> {
 }
 
 fn modulus_exact_latex(z: Exact) -> String {
-    let r2 = match z.re.mul(z.re).and_then(|a| z.im.mul(z.im).and_then(|b| a.add(b))) {
+    let r2 = match z
+        .re
+        .mul(z.re)
+        .and_then(|a| z.im.mul(z.im).and_then(|b| a.add(b)))
+    {
         Ok(v) => v,
         Err(_) => return "0".into(),
     };
@@ -254,7 +262,11 @@ fn modulus_exact_latex(z: Exact) -> String {
 }
 
 fn modulus_exact_plain(z: Exact) -> String {
-    let r2 = match z.re.mul(z.re).and_then(|a| z.im.mul(z.im).and_then(|b| a.add(b))) {
+    let r2 = match z
+        .re
+        .mul(z.re)
+        .and_then(|a| z.im.mul(z.im).and_then(|b| a.add(b)))
+    {
         Ok(v) => v,
         Err(_) => return "0".into(),
     };
@@ -287,7 +299,11 @@ fn gcd(mut a: i64, mut b: i64) -> i64 {
         a = b;
         b = t;
     }
-    if a == 0 { 1 } else { a }
+    if a == 0 {
+        1
+    } else {
+        a
+    }
 }
 
 fn pi_fraction_up_to(theta: f64, max_den: i64) -> Option<(i64, i64)> {
@@ -396,11 +412,10 @@ impl Polar {
                 fmt4(theta.to_degrees()),
             )
         };
-        let r2 = z
-            .re
-            .mul(z.re)
-            .and_then(|a| z.im.mul(z.im).and_then(|b| a.add(b)))
-            .unwrap_or(Rat::ZERO);
+        let r2 =
+            z.re.mul(z.re)
+                .and_then(|a| z.im.mul(z.im).and_then(|b| a.add(b)))
+                .unwrap_or(Rat::ZERO);
         Polar {
             r,
             theta,
@@ -550,10 +565,9 @@ pub fn arithmetic(z: Exact, w: Exact, op: &str) -> Result<Outcome, String> {
         }
         "*" => {
             steps.push(Step {
-                description:
-                    "Multiply out (a + bi)(c + di) = (ac - bd) + (ad + bc)i.".into(),
-                description_latex:
-                    "Multiply out $(a + bi)(c + di) = (ac - bd) + (ad + bc)i$.".into(),
+                description: "Multiply out (a + bi)(c + di) = (ac - bd) + (ad + bc)i.".into(),
+                description_latex: "Multiply out $(a + bi)(c + di) = (ac - bd) + (ad + bc)i$."
+                    .into(),
             });
         }
         "/" => {
@@ -574,10 +588,7 @@ pub fn arithmetic(z: Exact, w: Exact, op: &str) -> Result<Outcome, String> {
             });
             steps.push(Step {
                 description: format!("The denominator becomes |w|² = {}.", den.plain()),
-                description_latex: format!(
-                    "The denominator becomes $|w|^2 = {}$.",
-                    den.latex()
-                ),
+                description_latex: format!("The denominator becomes $|w|^2 = {}$.", den.latex()),
             });
         }
         _ => {}
@@ -620,7 +631,10 @@ pub fn arithmetic(z: Exact, w: Exact, op: &str) -> Result<Outcome, String> {
                 "{label_latex} \\approx {}",
                 approx_latex(result.approx())
             ));
-            summary.push(format!("{label_plain} ≈ {}.", approx_latex(result.approx())));
+            summary.push(format!(
+                "{label_plain} ≈ {}.",
+                approx_latex(result.approx())
+            ));
             summary_latex.push(format!(
                 "${label_latex} \\approx {}$",
                 approx_latex(result.approx())
@@ -644,12 +658,9 @@ pub fn polar_form(z: Exact) -> Outcome {
     let p = Polar::from(z);
     let za = z.approx();
     let mut argand = Argand::default();
-    argand.points.push(point(
-        "z",
-        &format!("z = {}", exact_latex(z)),
-        za,
-        "input",
-    ));
+    argand
+        .points
+        .push(point("z", &format!("z = {}", exact_latex(z)), za, "input"));
     if p.r > 0.00005 {
         argand.circles.push(Circle { radius: p.r });
     }
@@ -755,10 +766,7 @@ pub fn power(z: Exact, n: i64) -> Result<Outcome, String> {
         de_moivre,
     ];
     let mut summary = vec![format!("z^{{{n}}} = {}.", exact_plain(result))];
-    let mut summary_latex = vec![format!(
-        "$z^{{{n}}} = {}$",
-        exact_latex(result)
-    )];
+    let mut summary_latex = vec![format!("$z^{{{n}}} = {}$", exact_latex(result))];
     if !result.is_integral() {
         if let Some(decimal) = terminating_complex_decimal(result) {
             lines.push(format!("z^{{{n}}} = {decimal}"));
@@ -769,10 +777,7 @@ pub fn power(z: Exact, n: i64) -> Result<Outcome, String> {
                 "z^{{{n}}} \\approx {}",
                 approx_latex(result.approx())
             ));
-            summary.push(format!(
-                "z^{{{n}}} ≈ {}.",
-                approx_latex(result.approx())
-            ));
+            summary.push(format!("z^{{{n}}} ≈ {}.", approx_latex(result.approx())));
             summary_latex.push(format!(
                 "$z^{{{n}}} \\approx {}$",
                 approx_latex(result.approx())
@@ -881,7 +886,11 @@ fn nth_root_i64(value: i64, n: i64) -> Option<i64> {
         return Some(0);
     }
     let root = (value as f64).powf(1.0 / n as f64).round() as i64;
-    if root.pow(n as u32) == value { Some(root) } else { None }
+    if root.pow(n as u32) == value {
+        Some(root)
+    } else {
+        None
+    }
 }
 
 fn nth_root_exact(value: Rat, n: i64) -> Option<Rat> {
@@ -894,9 +903,13 @@ fn root_set_plain(n: i64, unity: bool) -> String {
     let z0 = if unity { "" } else { "z_0" };
     let term = |k: i64| {
         if unity {
-            if k == 0 { "1".to_string() }
-            else if k == 1 { "ω".to_string() }
-            else { format!("ω^{k}") }
+            if k == 0 {
+                "1".to_string()
+            } else if k == 1 {
+                "ω".to_string()
+            } else {
+                format!("ω^{k}")
+            }
         } else if k == 0 {
             "z_0".to_string()
         } else if k == 1 {
@@ -916,9 +929,13 @@ fn root_set_plain(n: i64, unity: bool) -> String {
 fn root_set_latex(n: i64, unity: bool) -> String {
     let term = |k: i64| {
         if unity {
-            if k == 0 { "1".to_string() }
-            else if k == 1 { "\\omega".to_string() }
-            else { format!("\\omega^{{{k}}}") }
+            if k == 0 {
+                "1".to_string()
+            } else if k == 1 {
+                "\\omega".to_string()
+            } else {
+                format!("\\omega^{{{k}}}")
+            }
         } else if k == 0 {
             "z_0".to_string()
         } else if k == 1 {
@@ -931,12 +948,7 @@ fn root_set_latex(n: i64, unity: bool) -> String {
         1 => format!("\\{{{}}}", term(0)),
         2 => format!("\\{{{}, {}\\}}", term(0), term(1)),
         3 => format!("\\{{{}, {}, {}\\}}", term(0), term(1), term(2)),
-        _ => format!(
-            "\\{{{}, {}, \\ldots, {}\\}}",
-            term(0),
-            term(1),
-            term(n - 1)
-        ),
+        _ => format!("\\{{{}, {}, \\ldots, {}\\}}", term(0), term(1), term(n - 1)),
     }
 }
 
@@ -966,11 +978,10 @@ pub fn roots(z: Exact, n: i64) -> Result<Outcome, String> {
     }
 
     let root_r = p.r.powf(1.0 / n as f64);
-    let r2 = z
-        .re
-        .mul(z.re)
-        .and_then(|a| z.im.mul(z.im).and_then(|b| a.add(b)))
-        .unwrap_or(Rat::ZERO);
+    let r2 =
+        z.re.mul(z.re)
+            .and_then(|a| z.im.mul(z.im).and_then(|b| a.add(b)))
+            .unwrap_or(Rat::ZERO);
     let root_mod_rat = sqrt_exact(r2).and_then(|r| nth_root_exact(r, n));
     let root_mod_exact = match root_mod_rat {
         Some(r) => r.latex(),
@@ -1025,11 +1036,7 @@ pub fn roots(z: Exact, n: i64) -> Result<Outcome, String> {
         })
         .collect();
 
-    let mut lines = vec![
-        format!("z = {}", exact_latex(z)),
-        mod_line,
-        arg_line,
-    ];
+    let mut lines = vec![format!("z = {}", exact_latex(z)), mod_line, arg_line];
     let mut argand = Argand::default();
 
     if is_unity {
@@ -1043,10 +1050,7 @@ pub fn roots(z: Exact, n: i64) -> Result<Outcome, String> {
             };
             let exact = omega_power_exact(k, n);
             if let Some(value) = omega_exact_complex(k, n) {
-                lines.push(format!(
-                    "{omega_label} = {exact} = {}",
-                    exact_latex(value)
-                ));
+                lines.push(format!("{omega_label} = {exact} = {}", exact_latex(value)));
             } else {
                 let omega_value = Approx {
                     re: (omega_angle * k as f64).cos(),
@@ -1058,7 +1062,7 @@ pub fn roots(z: Exact, n: i64) -> Result<Outcome, String> {
                 ));
             }
             argand.points.push(point(
-                &format!("{omega_label}"),
+                &omega_label,
                 &format!("{omega_label} = {exact}"),
                 root_values[k as usize],
                 "root",
@@ -1070,9 +1074,12 @@ pub fn roots(z: Exact, n: i64) -> Result<Outcome, String> {
         } else {
             format!("z_0 = {}", z0_exact)
         });
-        argand
-            .points
-            .push(point("z", &format!("z = {}", exact_latex(z)), z.approx(), "input"));
+        argand.points.push(point(
+            "z",
+            &format!("z = {}", exact_latex(z)),
+            z.approx(),
+            "input",
+        ));
         argand.points.push(point(
             "z_0",
             &format!("z_0 = {}", z0_exact),
@@ -1087,10 +1094,7 @@ pub fn roots(z: Exact, n: i64) -> Result<Outcome, String> {
             };
             let exact = omega_power_exact(k, n);
             if let Some(value) = omega_exact_complex(k, n) {
-                lines.push(format!(
-                    "{omega_label} = {exact} = {}",
-                    exact_latex(value)
-                ));
+                lines.push(format!("{omega_label} = {exact} = {}", exact_latex(value)));
             } else {
                 let omega_value = Approx {
                     re: (omega_angle * k as f64).cos(),
@@ -1108,17 +1112,18 @@ pub fn roots(z: Exact, n: i64) -> Result<Outcome, String> {
             } else {
                 format!("\\omega^{{{k}}}")
             };
-            let exact_root = if let (Some(z0), Some(omega)) = (root_mod_rat, omega_exact_complex(k, n)) {
-                Some(
-                    Exact {
-                        re: z0,
-                        im: Rat::ZERO,
-                    }
-                    .mul(omega)?,
-                )
-            } else {
-                None
-            };
+            let exact_root =
+                if let (Some(z0), Some(omega)) = (root_mod_rat, omega_exact_complex(k, n)) {
+                    Some(
+                        Exact {
+                            re: z0,
+                            im: Rat::ZERO,
+                        }
+                        .mul(omega)?,
+                    )
+                } else {
+                    None
+                };
             if let Some(root) = exact_root {
                 lines.push(format!("z_0{power} = {}", exact_latex(root)));
                 argand.points.push(point(
@@ -1244,32 +1249,80 @@ mod tests {
         assert!(out.lines[2].contains("11 - 2i"), "{:?}", out.lines);
         assert!(!out.lines.iter().any(|l| l.contains("approx")));
         let out = arithmetic(z(1, 2), z(3, -4), "/").unwrap();
-        assert!(out.lines.iter().any(|l| l.contains("\\frac{z}{w}")), "{:?}", out.lines);
-        assert!(out.lines.iter().any(|l| l.contains("0.4i")), "{:?}", out.lines);
+        assert!(
+            out.lines.iter().any(|l| l.contains("\\frac{z}{w}")),
+            "{:?}",
+            out.lines
+        );
+        assert!(
+            out.lines.iter().any(|l| l.contains("0.4i")),
+            "{:?}",
+            out.lines
+        );
     }
 
     #[test]
     fn repeating_decimals_use_approx_and_terminating_ones_use_equals() {
         let terminating = arithmetic(z(1, 2), z(3, -4), "/").unwrap();
-        assert!(terminating.lines.iter().any(|l| l.contains("= -0.2 + 0.4i")), "{:?}", terminating.lines);
+        assert!(
+            terminating
+                .lines
+                .iter()
+                .any(|l| l.contains("= -0.2 + 0.4i")),
+            "{:?}",
+            terminating.lines
+        );
         let repeating = arithmetic(z(1, 0), z(3, 0), "/").unwrap();
-        assert!(repeating.lines.iter().any(|l| l.contains("\\approx 0.3333")), "{:?}", repeating.lines);
-        assert!(!repeating.lines.iter().any(|l| l.contains("= 0.3333")), "{:?}", repeating.lines);
+        assert!(
+            repeating
+                .lines
+                .iter()
+                .any(|l| l.contains("\\approx 0.3333")),
+            "{:?}",
+            repeating.lines
+        );
+        assert!(
+            !repeating.lines.iter().any(|l| l.contains("= 0.3333")),
+            "{:?}",
+            repeating.lines
+        );
     }
 
     #[test]
     fn polar_form_has_exact_and_approximate_values() {
         let out = polar_form(z(1, 1));
-        assert!(out.lines.iter().any(|l| l.contains("\\sqrt{2}")), "{:?}", out.lines);
-        assert!(out.lines.iter().any(|l| l.contains("1.4142")), "{:?}", out.lines);
-        assert!(out.lines.iter().any(|l| l.contains("\\frac{\\pi}{4}")), "{:?}", out.lines);
-        assert!(out.lines.iter().any(|l| l.contains("0.7854")), "{:?}", out.lines);
+        assert!(
+            out.lines.iter().any(|l| l.contains("\\sqrt{2}")),
+            "{:?}",
+            out.lines
+        );
+        assert!(
+            out.lines.iter().any(|l| l.contains("1.4142")),
+            "{:?}",
+            out.lines
+        );
+        assert!(
+            out.lines.iter().any(|l| l.contains("\\frac{\\pi}{4}")),
+            "{:?}",
+            out.lines
+        );
+        assert!(
+            out.lines.iter().any(|l| l.contains("0.7854")),
+            "{:?}",
+            out.lines
+        );
     }
 
     #[test]
     fn power_is_labelled_with_the_exponent() {
         let out = power(z(1, 1), 6).unwrap();
-        assert!(out.lines.iter().any(|l| l.contains("z^{6}") && l.contains("-8i")), "{:?}", out.lines);
+        assert!(
+            out.lines
+                .iter()
+                .any(|l| l.contains("z^{6}") && l.contains("-8i")),
+            "{:?}",
+            out.lines
+        );
         assert!(out.summary[0].contains("z^{6}"), "{:?}", out.summary);
     }
 
@@ -1277,8 +1330,16 @@ mod tests {
     fn roots_have_exact_and_approximate_forms() {
         let out = roots(z(1, 0), 3).unwrap();
         assert_eq!(out.argand.points.len(), 3);
-        assert!(out.lines.iter().any(|l| l.contains("2\\pi")), "{:?}", out.lines);
-        assert!(out.lines.iter().any(|l| l.contains("0.866")), "{:?}", out.lines);
+        assert!(
+            out.lines.iter().any(|l| l.contains("2\\pi")),
+            "{:?}",
+            out.lines
+        );
+        assert!(
+            out.lines.iter().any(|l| l.contains("0.866")),
+            "{:?}",
+            out.lines
+        );
         let zero = roots(z(0, 0), 4).unwrap();
         assert_eq!(zero.argand.points.len(), 1);
     }

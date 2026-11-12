@@ -1,9 +1,5 @@
-use crate::engine::{
-    determinant, inverse, nullspace, rref, solve, Matrix, SolveKind,
-};
-use crate::render::{
-    self, LabeledMatrix, LabeledScalar, LabeledVector, Outcome, ResultData,
-};
+use crate::engine::{determinant, inverse, nullspace, rref, solve, Matrix, SolveKind};
+use crate::render::{self, LabeledMatrix, LabeledScalar, LabeledVector, Outcome, ResultData};
 use mathcore::Rat;
 use serde_json::Value;
 
@@ -69,12 +65,14 @@ fn run(v: &Value) -> Result<render::Output, String> {
             let nullity = matrix.cols - rank;
             let pivot_list = human_list(&reduced.pivots);
             let free = free_columns(matrix.cols, &reduced.pivots);
-            let mut summary = vec![format!(
-                "The rank is {rank}; the nullity is {nullity}."
-            )];
+            let mut summary = vec![format!("The rank is {rank}; the nullity is {nullity}.")];
             summary.push(format!(
                 "Pivot columns: {}. Free columns: {}.",
-                if pivot_list.is_empty() { "none".to_string() } else { pivot_list },
+                if pivot_list.is_empty() {
+                    "none".to_string()
+                } else {
+                    pivot_list
+                },
                 human_list_or_none(&free)
             ));
             let mut summary_latex = vec![format!(
@@ -146,7 +144,8 @@ fn run(v: &Value) -> Result<render::Output, String> {
             let summary_latex;
             let result = if let Some(inv) = inverse_matrix {
                 summary = vec![
-                    "Row-reducing [A | I] turned the left block into I; the right block is A^{-1}.".into(),
+                    "Row-reducing [A | I] turned the left block into I; the right block is A^{-1}."
+                        .into(),
                 ];
                 summary_latex = vec![
                     "Row-reducing $[A \\mid I]$ turned the left block into $I$; the right block is $A^{-1}$.".into(),
@@ -164,10 +163,12 @@ fn run(v: &Value) -> Result<render::Output, String> {
                 }
             } else {
                 summary = vec![
-                    "The left block could not become I, so A is singular and has no inverse.".into(),
+                    "The left block could not become I, so A is singular and has no inverse."
+                        .into(),
                 ];
                 summary_latex = vec![
-                    "The left block could not become $I$, so $A$ is singular and has no inverse.".into(),
+                    "The left block could not become $I$, so $A$ is singular and has no inverse."
+                        .into(),
                 ];
                 ResultData {
                     matrix: None,
@@ -191,9 +192,7 @@ fn run(v: &Value) -> Result<render::Output, String> {
             let dimension = space.basis.len();
             let free = free_columns(matrix.cols, &space.rref.pivots);
             let mut summary = vec![format!("The nullspace has dimension {dimension}.")];
-            let mut summary_latex = vec![format!(
-                "$\\dim\\operatorname{{null}}(A) = {dimension}$"
-            )];
+            let mut summary_latex = vec![format!("$\\dim\\operatorname{{null}}(A) = {dimension}$")];
             let mut vectors = Vec::new();
             for (i, values) in space.basis.iter().enumerate() {
                 vectors.push(LabeledVector {
@@ -204,12 +203,10 @@ fn run(v: &Value) -> Result<render::Output, String> {
             }
             if dimension == 0 {
                 summary.push(
-                    "Every column is a pivot column, so the nullspace is the zero subspace."
-                        .into(),
+                    "Every column is a pivot column, so the nullspace is the zero subspace.".into(),
                 );
                 summary_latex.push(
-                    "Every column is a pivot column, so the nullspace is the zero subspace."
-                        .into(),
+                    "Every column is a pivot column, so the nullspace is the zero subspace.".into(),
                 );
             } else {
                 summary.push(format!(
@@ -391,11 +388,8 @@ fn parse_matrix(v: &Value) -> Result<Matrix, String> {
         }
         let mut parsed = Vec::with_capacity(cols);
         for (j, entry) in row.iter().enumerate() {
-            parsed.push(
-                rat_value(entry).map_err(|e| {
-                    format!("entry ({}, {}): {e}", i + 1, j + 1)
-                })?,
-            );
+            parsed
+                .push(rat_value(entry).map_err(|e| format!("entry ({}, {}): {e}", i + 1, j + 1))?);
         }
         data.push(parsed);
     }

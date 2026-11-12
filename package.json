@@ -4,12 +4,22 @@
   "private": true,
   "type": "module",
   "description": "Local maths tools for lab.faris0x.dev",
+  "license": "GPL-3.0-only",
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "dev": "npm run wasm && astro dev",
     "build": "npm run wasm && astro build",
     "preview": "astro preview",
     "wasm": "bash scripts/build-wasm.sh",
-    "test:rust": "cargo test --manifest-path rust/Cargo.toml --workspace"
+    "wasm:install": "cargo install wasm-bindgen-cli --version 0.2.130 --locked",
+    "check": "astro check && svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:rust": "cargo test --manifest-path rust/Cargo.toml --workspace",
+    "size": "bash scripts/check-wasm-size.sh"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",
@@ -23,6 +33,11 @@
     "typescript": "^6.0.3"
   },
   "devDependencies": {
-    "@types/d3-scale": "^4.0.9"
+    "@astrojs/check": "^0.9.12",
+    "@playwright/test": "^1.65.0",
+    "@types/d3-scale": "^4.0.9",
+    "@types/node": "^24.19.2",
+    "svelte-check": "^4.7.8",
+    "vitest": "^5.1.0"
   }
 }

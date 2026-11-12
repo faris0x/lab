@@ -2,5 +2,7 @@ node_modules/
 dist/
 .astro/
 rust/target/
-public/wasm/*.wasm
+public/wasm/
+test-results/
+playwright-report/
 .DS_Store

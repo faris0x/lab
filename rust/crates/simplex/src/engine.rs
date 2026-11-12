@@ -294,18 +294,12 @@ pub fn build_standard(model: &Model) -> Result<Standard, String> {
             for j in 0..width {
                 let r = rows[i][j].a;
                 if !r.is_zero() {
-                    obj[j] = obj[j].sub(MVal {
-                        a: Rat::ZERO,
-                        b: r,
-                    })?;
+                    obj[j] = obj[j].sub(MVal { a: Rat::ZERO, b: r })?;
                 }
             }
             let r = rhs[i].a;
             if !r.is_zero() {
-                obj_rhs = obj_rhs.sub(MVal {
-                    a: Rat::ZERO,
-                    b: r,
-                })?;
+                obj_rhs = obj_rhs.sub(MVal { a: Rat::ZERO, b: r })?;
             }
         }
     }
@@ -718,11 +712,7 @@ pub fn solve(model: Model) -> Result<Solution, String> {
             let mut bits_tex = Vec::new();
             for (i, v) in values.iter().enumerate() {
                 bits.push(format!("{} = {}", model.vars[i], v.plain()));
-                bits_tex.push(format!(
-                    "{} = {}",
-                    var_latex(&model.vars[i]),
-                    v.latex()
-                ));
+                bits_tex.push(format!("{} = {}", var_latex(&model.vars[i]), v.latex()));
             }
             summary_plain.push(format!(
                 "The optimal value is {label} = {} at {}.",
@@ -746,8 +736,10 @@ pub fn solve(model: Model) -> Result<Solution, String> {
             }
         }
         Status::Infeasible => {
-            summary_plain.push("The problem is infeasible: no point satisfies all constraints.".into());
-            summary_latex.push("The problem is infeasible: no point satisfies all constraints.".into());
+            summary_plain
+                .push("The problem is infeasible: no point satisfies all constraints.".into());
+            summary_latex
+                .push("The problem is infeasible: no point satisfies all constraints.".into());
         }
         Status::Unbounded => {
             summary_plain.push("The objective is unbounded: it can be made arbitrarily large (or small) while satisfying the constraints.".into());
@@ -776,15 +768,9 @@ pub fn row_op_plain(op: &RowOp) -> String {
     } else if op.factor == Rat::int(-1) {
         format!("R{t} ← R{t} + R{s}")
     } else if op.factor.is_negative() {
-        format!(
-            "R{t} ← R{t} + {}R{s}",
-            op.factor.abs().plain()
-        )
+        format!("R{t} ← R{t} + {}R{s}", op.factor.abs().plain())
     } else {
-        format!(
-            "R{t} ← R{t} − {}R{s}",
-            op.factor.plain()
-        )
+        format!("R{t} ← R{t} − {}R{s}", op.factor.plain())
     }
 }
 
@@ -891,12 +877,7 @@ pub fn expr_plain(coeffs: &[MVal], headers: &[Header]) -> String {
             out.push_str(name);
         } else {
             let cs = mag.abs_plain();
-            if !mag.b.is_zero() && !mag.a.is_zero() {
-                out.push('(');
-                out.push_str(&cs);
-                out.push(')');
-                out.push_str(name);
-            } else if mag.b.is_zero() && mag.a.d != 1 {
+            if (!mag.b.is_zero() && !mag.a.is_zero()) || (mag.b.is_zero() && mag.a.d != 1) {
                 out.push('(');
                 out.push_str(&cs);
                 out.push(')');
@@ -959,8 +940,8 @@ pub fn expr_latex(coeffs: &[MVal], headers: &[Header]) -> String {
 }
 
 fn with_prefix_plain(prefix: &str, expr: &str) -> String {
-    if expr.starts_with('-') {
-        format!("{prefix} - {}", &expr[1..])
+    if let Some(rest) = expr.strip_prefix('-') {
+        format!("{prefix} - {rest}")
     } else if expr == "0" {
         prefix.to_string()
     } else {
@@ -969,8 +950,8 @@ fn with_prefix_plain(prefix: &str, expr: &str) -> String {
 }
 
 fn with_prefix_latex(prefix: &str, expr: &str) -> String {
-    if expr.starts_with('-') {
-        format!("{prefix} - {}", &expr[1..])
+    if let Some(rest) = expr.strip_prefix('-') {
+        format!("{prefix} - {rest}")
     } else if expr == "0" {
         prefix.to_string()
     } else {
@@ -1180,4 +1161,3 @@ mod tests {
         assert_eq!(sol.values, vec![Rat::int(3)]);
     }
 }
-

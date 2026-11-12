@@ -236,7 +236,7 @@ export function build(source: string): LogicResult {
     return da === db ? a.key.length - b.key.length : da - db;
   });
 
-  if (tree.type !== 'var') {
+  if (tree.type !== 'var' || tree.name === 't' || tree.name === 'f') {
     const rootKey = label(tree);
     const rootEntry = { node: tree, label: rootKey, key: rootKey };
     const others = unique.filter((entry) => entry.key !== rootKey || entry.node !== tree);
@@ -263,7 +263,6 @@ export function build(source: string): LogicResult {
     rows.push({ values: rowValues });
   }
 
-  const finalColumn = unique.length ? unique[unique.length - 1] : null;
   const finalIndex = columns.length - 1;
   const finals = rows.map((row) => row.values[finalIndex]);
   const verdict = finals.every(Boolean)

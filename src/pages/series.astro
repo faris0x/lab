@@ -1,0 +1,80 @@
+---
+import LatexLogo from '../components/LatexLogo.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SeriesTool from '../components/SeriesTool.svelte';
+---
+
+<BaseLayout
+  title={'Taylor & Maclaurin series | lab by faris0x'}
+  description="Expand a function as a Taylor or Maclaurin series, see every derivative and coefficient, and export the working as a .tex file."
+  current="series"
+  math
+>
+  <div class="tool-head">
+    <div>
+      <h1>Taylor &amp; Maclaurin series</h1>
+    </div>
+    <p>
+      Expand a function about a point, inspect each derivative and coefficient,
+      and export the finished series as <LatexLogo />. Setting the centre to
+      zero gives the Maclaurin series.
+    </p>
+  </div>
+
+  <SeriesTool client:idle />
+
+  <section class="section" aria-labelledby="method">
+    <h2 id="method">How the expansion is built</h2>
+    <p class="section-intro">
+      The Taylor series of a function about <span class="inline-code">x = a</span>
+      is the polynomial whose coefficients are
+      <span class="inline-code">c<sub>k</sub> = f<sup>(k)</sup>(a) / k!</span>.
+      The tool differentiates symbolically, evaluates each derivative at the
+      centre, and divides by the factorial.
+    </p>
+    <p class="section-intro">
+      When <span class="inline-code">a = 0</span> the same construction is
+      called the Maclaurin series. The degree you choose is the highest power
+      kept; the table shows every term from degree zero upwards.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="syntax">
+    <h2 id="syntax">Syntax</h2>
+    <ul class="plain-list section-intro">
+      <li><strong>Variable</strong>: <code>x</code>.</li>
+      <li><strong>Operators</strong>: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code> and <code>^</code>.</li>
+      <li><strong>Functions</strong>: <code>sin</code>, <code>cos</code>, <code>tan</code>, <code>exp</code>, <code>ln</code>, <code>sqrt</code>, <code>sinh</code> and <code>cosh</code>.</li>
+      <li><strong>Constants</strong>: <code>pi</code> and <code>e</code>.</li>
+      <li><strong>Implicit multiplication</strong>: <code>2x</code>, <code>x(x+1)</code> and <code>2sin(x)</code>.</li>
+    </ul>
+  </section>
+
+  <section class="section" aria-labelledby="exactness">
+    <h2 id="exactness">Exactness</h2>
+    <p class="section-intro">
+      Coefficients are exact rational numbers whenever the derivatives evaluate
+      to rational numbers. At a non-zero centre, transcendental values stay
+      symbolic: the Taylor series of <span class="inline-code">sin x</span>
+      about <span class="inline-code">x = 1</span> contains
+      <span class="inline-code">sin(1)</span> and
+      <span class="inline-code">cos(1)</span> rather than decimal
+      approximations.
+    </p>
+    <p class="section-intro">
+      The centre must be a rational number, and the degree is limited to
+      twelve so the derivative expressions stay readable. The tool does not
+      estimate a remainder or a radius of convergence.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="export">
+    <h2 id="export">Export</h2>
+    <p class="section-intro">
+      The <LatexLogo /> tab previews the document, and the export bar copies or
+      downloads the same source. It uses <code>amsmath</code> and
+      <code>amssymb</code>, so a standard TeX installation compiles the
+      derivative table and the final series.
+    </p>
+  </section>
+</BaseLayout>

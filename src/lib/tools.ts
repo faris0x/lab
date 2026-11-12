@@ -41,6 +41,15 @@ export const tools: ToolMeta[] = [
       'Add, subtract, multiply, or divide complex numbers. Convert to polar form, use de Moivre for powers, find all roots, and see every result on an Argand diagram.'
   },
   {
+    key: 'series',
+    href: '/series',
+    nav: 'Series',
+    title: 'Taylor & Maclaurin series',
+    tag: 'Live · Series',
+    description:
+      'Expand a function about a point. Every derivative, value and coefficient is shown, and the finished series exports as a .tex file.'
+  },
+  {
     key: 'logic',
     href: '/logic',
     nav: 'Logic',

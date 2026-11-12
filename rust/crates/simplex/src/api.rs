@@ -65,9 +65,7 @@ fn parse_model(v: &Value) -> Result<Model, String> {
     }
     let mut objective = Vec::with_capacity(vars.len());
     for (j, c) in obj_value.iter().enumerate() {
-        objective.push(
-            rat_value(c).map_err(|e| format!("objective coefficient {}: {e}", j + 1))?,
-        );
+        objective.push(rat_value(c).map_err(|e| format!("objective coefficient {}: {e}", j + 1))?);
     }
 
     let cons_value = v

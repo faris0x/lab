@@ -34,8 +34,8 @@ impl Matrix {
 
     pub fn identity(n: usize) -> Self {
         let mut data = vec![vec![Rat::ZERO; n]; n];
-        for i in 0..n {
-            data[i][i] = Rat::ONE;
+        for (i, row) in data.iter_mut().enumerate() {
+            row[i] = Rat::ONE;
         }
         Matrix {
             rows: n,
@@ -165,15 +165,9 @@ fn elimination_words(target: usize, source: usize, factor: Rat) -> String {
     } else if factor == Rat::int(-1) {
         format!("Add row {s} to row {t}")
     } else if factor.is_negative() {
-        format!(
-            "Add {} times row {s} to row {t}",
-            factor.abs().plain()
-        )
+        format!("Add {} times row {s} to row {t}", factor.abs().plain())
     } else {
-        format!(
-            "Subtract {} times row {s} from row {t}",
-            factor.plain()
-        )
+        format!("Subtract {} times row {s} from row {t}", factor.plain())
     }
 }
 
@@ -185,15 +179,9 @@ fn elimination_words_latex(target: usize, source: usize, factor: Rat) -> String 
     } else if factor == Rat::int(-1) {
         format!("Add ${s}$ to ${t}$")
     } else if factor.is_negative() {
-        format!(
-            "Add ${}$ times ${s}$ to ${t}$",
-            factor.abs().latex()
-        )
+        format!("Add ${}$ times ${s}$ to ${t}$", factor.abs().latex())
     } else {
-        format!(
-            "Subtract ${}$ times ${s}$ from ${t}$",
-            factor.latex()
-        )
+        format!("Subtract ${}$ times ${s}$ from ${t}$", factor.latex())
     }
 }
 
@@ -430,9 +418,9 @@ pub fn inverse(m: Matrix) -> Result<(Option<Matrix>, Rref), String> {
         return Ok((None, reduced));
     }
     let mut data = vec![vec![Rat::ZERO; n]; n];
-    for i in 0..n {
-        for j in 0..n {
-            data[i][j] = reduced.matrix.data[i][n + j];
+    for (i, row) in data.iter_mut().enumerate() {
+        for (j, cell) in row.iter_mut().enumerate() {
+            *cell = reduced.matrix.data[i][n + j];
         }
     }
     Ok((
@@ -682,12 +670,7 @@ mod tests {
 
     #[test]
     fn explanations_say_what_the_step_does() {
-        let reduced = rref(
-            mat(&[&[2, 1], &[1, 3]]),
-            "Start with A.",
-            "Start with $A$.",
-        )
-        .unwrap();
+        let reduced = rref(mat(&[&[2, 1], &[1, 3]]), "Start with A.", "Start with $A$.").unwrap();
         let text = reduced
             .steps
             .iter()
@@ -720,11 +703,7 @@ mod tests {
             _ => panic!("expected infinitely many solutions"),
         }
 
-        let inconsistent = solve(
-            mat(&[&[1, 1], &[1, 1]]),
-            &[Rat::int(1), Rat::int(2)],
-        )
-        .unwrap();
+        let inconsistent = solve(mat(&[&[1, 1], &[1, 1]]), &[Rat::int(1), Rat::int(2)]).unwrap();
         assert!(matches!(inconsistent.kind, SolveKind::Inconsistent));
     }
 }

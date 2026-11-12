@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
-# Local toolchain for this machine: the system Node is broken because its
-# libsimdjson soname does not match the installed library.
-export PATH="$HOME/.local/node-v26.13.0/bin:$PATH"
+# Optional local toolchain override. CI and any machine with a working Node 24
+# on PATH can ignore this file.
+local_node="$HOME/.local/node-v26.13.0/bin"
+if [ -d "$local_node" ]; then
+  export PATH="$local_node:$PATH"
+fi

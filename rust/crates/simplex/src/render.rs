@@ -206,10 +206,7 @@ pub fn tableau_latex(tab: &Tableau, pivot: Option<(usize, usize)>) -> String {
         out.push_str(&var_latex(&tab.headers[b].name));
         for j in 0..width {
             out.push_str(" & ");
-            out.push_str(&cell_latex(
-                tab.rows[i][j],
-                pivot == Some((i, j)),
-            ));
+            out.push_str(&cell_latex(tab.rows[i][j], pivot == Some((i, j))));
         }
         out.push_str(" & ");
         out.push_str(&tab.rhs[i].latex());
@@ -255,11 +252,7 @@ fn summary_block(sol: &Solution) -> String {
             };
             let mut bits = Vec::new();
             for (i, v) in sol.values.iter().enumerate() {
-                bits.push(format!(
-                    "{} = {}",
-                    var_latex(&sol.model.vars[i]),
-                    v.latex()
-                ));
+                bits.push(format!("{} = {}", var_latex(&sol.model.vars[i]), v.latex()));
             }
             format!(
                 "\\text{{Optimal value }} {label} = {} \\text{{ at }} {}",

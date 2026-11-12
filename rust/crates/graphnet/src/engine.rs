@@ -71,7 +71,10 @@ fn label(labels: &[String], index: usize) -> String {
 }
 
 fn text(value: &str) -> String {
-    format!("\\text{{{}}}", value.replace('\\', "\\textbackslash{}").replace('&', "\\&"))
+    format!(
+        "\\text{{{}}}",
+        value.replace('\\', "\\textbackslash{}").replace('&', "\\&")
+    )
 }
 
 fn math(value: &str) -> String {
@@ -227,7 +230,7 @@ fn dijkstra(input: &GraphInput, edges: &[Edge]) -> Result<Output, String> {
                 continue;
             }
             let edge_weight = *edge.weight();
-            let candidate = cost + edge_weight;
+            let candidate = cost.add(edge_weight)?;
             let improves = match dist[next] {
                 None => true,
                 Some(current) => rat_lt(candidate, current),
@@ -250,7 +253,11 @@ fn dijkstra(input: &GraphInput, edges: &[Edge]) -> Result<Output, String> {
                         math(&weight(cost)),
                         math(&weight(edge_weight)),
                         math(&weight(candidate)),
-                        math(&format!("d({}) = {}", label(&input.labels, next), weight(candidate)))
+                        math(&format!(
+                            "d({}) = {}",
+                            label(&input.labels, next),
+                            weight(candidate)
+                        ))
                     ),
                     latex: None,
                 });
@@ -342,8 +349,9 @@ fn floyd(input: &GraphInput, edges: &[Edge]) -> Result<Output, String> {
     }
 
     let mut steps = vec![Step {
-        text: "Initialise the distance matrix; missing edges are infinite and the diagonal is zero."
-            .to_string(),
+        text:
+            "Initialise the distance matrix; missing edges are infinite and the diagonal is zero."
+                .to_string(),
         latex: Some(matrix(&input.labels, &dist)),
     }];
 
@@ -355,7 +363,7 @@ fn floyd(input: &GraphInput, edges: &[Edge]) -> Result<Output, String> {
                 let (Some(left), Some(right)) = (row_k[j], column_k[i]) else {
                     continue;
                 };
-                let candidate = left + right;
+                let candidate = left.add(right)?;
                 let improves = match dist[i][j] {
                     None => true,
                     Some(current) => rat_lt(candidate, current),
@@ -451,7 +459,7 @@ fn kruskal(input: &GraphInput, edges: &[Edge]) -> Result<Output, String> {
         );
         if joined {
             chosen.push(*edge);
-            total = total + edge.w;
+            total = total.add(edge.w)?;
             steps.push(Step {
                 text: format!(
                     "Accept {} with weight {}; running total {}.",
@@ -487,12 +495,14 @@ fn kruskal(input: &GraphInput, edges: &[Edge]) -> Result<Output, String> {
             } else {
                 chosen
                     .iter()
-                    .map(|edge| format!(
-                        "{}{} ({})",
-                        label(&input.labels, edge.u),
-                        label(&input.labels, edge.v),
-                        weight(edge.w)
-                    ))
+                    .map(|edge| {
+                        format!(
+                            "{}{} ({})",
+                            label(&input.labels, edge.u),
+                            label(&input.labels, edge.v),
+                            weight(edge.w)
+                        )
+                    })
                     .collect::<Vec<_>>()
                     .join(", ")
             }
@@ -528,11 +538,12 @@ fn prim(input: &GraphInput, edges: &[Edge]) -> Result<Output, String> {
     while chosen.len() < n - 1 {
         let mut best: Option<Edge> = None;
         for edge in edges {
-            let crossing = (visited[edge.u] && !visited[edge.v]) || (visited[edge.v] && !visited[edge.u]);
+            let crossing =
+                (visited[edge.u] && !visited[edge.v]) || (visited[edge.v] && !visited[edge.u]);
             if !crossing {
                 continue;
             }
-            if best.map_or(true, |current| rat_lt(edge.w, current.w)) {
+            if best.is_none_or(|current| rat_lt(edge.w, current.w)) {
                 best = Some(*edge);
             }
         }
@@ -540,7 +551,7 @@ fn prim(input: &GraphInput, edges: &[Edge]) -> Result<Output, String> {
         let next = if visited[edge.u] { edge.v } else { edge.u };
         visited[next] = true;
         chosen.push(edge);
-        total = total + edge.w;
+        total = total.add(edge.w)?;
         steps.push(Step {
             text: format!(
                 "Add {} with weight {}; running total {}.",
@@ -573,12 +584,14 @@ fn prim(input: &GraphInput, edges: &[Edge]) -> Result<Output, String> {
             } else {
                 chosen
                     .iter()
-                    .map(|edge| format!(
-                        "{}{} ({})",
-                        label(&input.labels, edge.u),
-                        label(&input.labels, edge.v),
-                        weight(edge.w)
-                    ))
+                    .map(|edge| {
+                        format!(
+                            "{}{} ({})",
+                            label(&input.labels, edge.u),
+                            label(&input.labels, edge.v),
+                            weight(edge.w)
+                        )
+                    })
                     .collect::<Vec<_>>()
                     .join(", ")
             }
@@ -606,11 +619,10 @@ fn matrix(labels: &[String], dist: &[Vec<Option<Rat>>]) -> String {
         .enumerate()
         .map(|(index, row)| {
             std::iter::once(text(&labels[index]))
-                .chain(row.iter().map(|value| {
-                    value
-                        .map(weight)
-                        .unwrap_or_else(|| "\\infty".to_string())
-                }))
+                .chain(
+                    row.iter()
+                        .map(|value| value.map(weight).unwrap_or_else(|| "\\infty".to_string())),
+                )
                 .collect::<Vec<_>>()
                 .join(" & ")
         })
@@ -683,7 +695,11 @@ Nodes: {}. Edges: {}.
 \\end{{document}}
 ",
         input.labels.join(", "),
-        if edge_list.is_empty() { "none".to_string() } else { edge_list }
+        if edge_list.is_empty() {
+            "none".to_string()
+        } else {
+            edge_list
+        }
     )
 }
 
@@ -706,6 +722,29 @@ mod tests {
         .unwrap();
         let output = run(&input).unwrap();
         assert!(output.summary[0].contains("3"));
+    }
+
+    #[test]
+    fn reports_overflow_instead_of_panicking() {
+        let input: GraphInput = serde_json::from_str(
+            r#"{
+                "labels": ["A","B","C"],
+                "directed": false,
+                "weights": [
+                    ["", "9223372036854775806", ""],
+                    ["9223372036854775806", "", "9223372036854775806"],
+                    ["", "9223372036854775806", ""]
+                ],
+                "algorithm": "dijkstra",
+                "source": 0,
+                "target": 2
+            }"#,
+        )
+        .unwrap();
+        let Err(error) = run(&input) else {
+            panic!("expected an overflow error");
+        };
+        assert!(error.contains("too large"));
     }
 
     #[test]

@@ -201,10 +201,7 @@ pub fn render(outcome: &Outcome) -> Output {
         text_latex: outcome.result.text_latex.clone(),
     };
 
-    let mut blocks = vec![format!(
-        "A = {}",
-        matrix_latex(&outcome.input, None)
-    )];
+    let mut blocks = vec![format!("A = {}", matrix_latex(&outcome.input, None))];
     for step in &outcome.steps {
         blocks.push(matrix_latex(&step.matrix, step.pivot));
     }
@@ -212,10 +209,7 @@ pub fn render(outcome: &Outcome) -> Output {
         blocks.push(format!("{} = {}", matrix.label_latex, matrix.latex));
     }
     if let Some(scalar) = &result.scalar {
-        blocks.push(format!(
-            "{} = {}",
-            scalar.label_latex, scalar.latex
-        ));
+        blocks.push(format!("{} = {}", scalar.label_latex, scalar.latex));
     }
     for vector in &result.vectors {
         blocks.push(format!("{} = {}", vector.label_latex, vector.latex));
