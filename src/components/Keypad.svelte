@@ -88,6 +88,14 @@
   function expressionKeys(): Key[] {
     return [
       ...variables.map((variable) => ({ tex: variable, insert: variable })),
+      { tex: '\\sin', insert: '\\sin\\left(#0\\right)', aria: 'sine' },
+      { tex: '\\cos', insert: '\\cos\\left(#0\\right)', aria: 'cosine' },
+      { tex: '\\tan', insert: '\\tan\\left(#0\\right)', aria: 'tangent' },
+      { tex: '\\ln', insert: '\\ln\\left(#0\\right)', aria: 'natural logarithm' },
+      { tex: 'e^{x}', insert: 'e^{#?}', aria: 'exponential' },
+      { tex: '\\sinh', insert: '\\sinh\\left(#0\\right)', aria: 'hyperbolic sine' },
+      { tex: '\\cosh', insert: '\\cosh\\left(#0\\right)', aria: 'hyperbolic cosine' },
+      { tex: '\\pi', insert: '\\pi', aria: 'pi' },
       { tex: 'x^{2}', insert: '^{2}', aria: 'squared' },
       { tex: 'x^{y}', insert: '^{#?}', aria: 'power' },
       { tex: '\\sqrt{x}', insert: '\\sqrt{#0}', aria: 'square root' },

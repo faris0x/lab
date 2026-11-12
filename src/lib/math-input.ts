@@ -240,16 +240,26 @@ function replaceLatexSuperscripts(source: string): string {
 
 /** Convert a LaTeX expression to the plain syntax used by the series parser. */
 export function latexToExpression(latex: string): string {
-  let value = stripWrappers(latex);
-  value = value.replace(/\\left\s*/g, '').replace(/\\right\s*/g, '');
+  // Remove spacing and delimiter commands before stripWrappers normalises
+  // digits: stripWrappers drops commas, which would otherwise leave a stray
+  // backslash from commands such as `\,`.
+  let value = latex
+    .replace(/\\left\s*/g, '')
+    .replace(/\\right\s*/g, '')
+    .replace(/\\(?:,|;|:|!|quad|qquad|displaystyle|textstyle)/g, ' ')
+    .replace(/\\\s+/g, ' ');
+  value = stripWrappers(value);
   value = replaceLatexFractions(value);
   value = replaceLatexSqrts(value);
   value = replaceLatexSuperscripts(value);
   value = value
+    .replace(/\\(?:mathrm|text|operatorname|textrm)\s*\{([^{}]*)\}/g, '$1')
+    .replace(/\\operatorname\*\s*\{([^{}]*)\}/g, '$1')
     .replace(/\\(?:cdot|times|ast)\b/g, '*')
     .replace(/\\div\b/g, '/')
     .replace(/\\pi\b/g, 'pi')
     .replace(/\\(sinh|cosh|sin|cos|tan|exp|ln)\b/g, '$1')
+    .replace(/\\/g, '')
     .replace(/[{}]/g, '');
   return value.replace(/\s+/g, ' ').trim();
 }

@@ -832,11 +832,19 @@ class Parser {
 
 function normalizeSource(source: string): string {
   return source
+    .replace(/\\left\s*|\\right\s*/g, '')
+    .replace(/\\(?:,|;|:|!|quad|qquad|displaystyle|textstyle)/g, ' ')
+    .replace(/\\(sinh|cosh|sin|cos|tan|exp|ln)\b/g, '$1')
+    .replace(/\\(?:cdot|times|ast)\b/g, '*')
+    .replace(/\\div\b/g, '/')
+    .replace(/\\pi\b/g, 'pi')
     .replace(/[×·]/g, '*')
     .replace(/[÷]/g, '/')
     .replace(/[−–]/g, '-')
     .replace(/π/g, 'pi')
-    .replace(/√/g, 'sqrt ');
+    .replace(/√/g, 'sqrt ')
+    .replace(/[{}]/g, '')
+    .replace(/\\/g, '');
 }
 
 export function parseExpression(source: string): Expr {

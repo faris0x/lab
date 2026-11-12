@@ -56,6 +56,10 @@ describe('Maclaurin series', () => {
     expect(coefficients('1/(1-x)', '0', 4)).toEqual(['1', '1', '1', '1', '1']);
   });
 
+  it('expands ln(1-3x) with implicit multiplication', () => {
+    expect(coefficients('ln(1-3x)', '0', 3)).toEqual(['0', '-3', '-9/2', '-9']);
+  });
+
   it('handles e^x notation', () => {
     expect(coefficients('e^x', '0', 3)).toEqual(['1', '1', '1/2', '1/6']);
   });

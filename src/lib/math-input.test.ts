@@ -66,6 +66,7 @@ describe('expression conversion', () => {
     expect(latexToExpression('e^{x+1}')).toBe('e^(x+1)');
     expect(latexToExpression('\\pi x')).toBe('pi x');
     expect(latexToExpression('2 \\cdot x')).toBe('2 * x');
+    expect(latexToExpression('\\ln\\left(1-3\\,x\\right)')).toBe('ln(1-3 x)');
   });
 
   it('renders the series syntax back into LaTeX', () => {

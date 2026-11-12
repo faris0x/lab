@@ -54,6 +54,37 @@ test('expands a Maclaurin series', async ({ page }) => {
   await expect(page.locator('.status')).toHaveText('Maclaurin series');
 });
 
+test('accepts ln(1-3x) and offers function keys', async ({ page }) => {
+  await page.goto('/series');
+  await expect(page.getByRole('button', { name: 'sine' })).toBeVisible();
+  const field = page.locator('math-field').first();
+  await field.waitFor();
+  await field.evaluate((element) => {
+    const input = element as HTMLElement & { value: string };
+    input.value = '\\ln\\left(1-3x\\right)';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.getByRole('button', { name: 'Expand', exact: true }).click();
+  await expect(page.locator('.error')).toHaveCount(0);
+  await expect(page.locator('.status')).toHaveText('Maclaurin series');
+});
+
+test('typing ln(1-3x) into the field works', async ({ page }) => {
+  await page.goto('/series');
+  const field = page.locator('math-field').first();
+  await field.waitFor();
+  await field.evaluate((element) => {
+    const input = element as HTMLElement & { value: string };
+    input.value = '';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await field.click();
+  await page.keyboard.type('ln(1-3x)');
+  await page.getByRole('button', { name: 'Expand', exact: true }).click();
+  await expect(page.locator('.error')).toHaveCount(0);
+  await expect(page.locator('.status')).toHaveText('Maclaurin series');
+});
+
 test('home page does not overflow on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto('/');
