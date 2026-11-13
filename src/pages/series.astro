@@ -37,6 +37,15 @@ import SeriesTool from '../components/SeriesTool.svelte';
       called the Maclaurin series. The degree you choose is the highest power
       kept; the table shows every term from degree zero upwards.
     </p>
+    <p class="section-intro">
+      The tool also looks for a general term in the coefficients. For example,
+      the sine series is reported as
+      <span class="inline-code">Σ (−1)<sup>n</sup> x<sup>2n+1</sup> /
+      (2n+1)!</span>. Detection covers common factorial, alternating and
+      geometric patterns; when no simple pattern is found, the exact
+      coefficient formula <span class="inline-code">f<sup>(n)</sup>(a)/n!</span>
+      is still shown.
+    </p>
   </section>
 
   <section class="section" aria-labelledby="syntax">
@@ -63,7 +72,9 @@ import SeriesTool from '../components/SeriesTool.svelte';
     </p>
     <p class="section-intro">
       The centre must be a rational number, and the degree is limited to
-      twelve so the derivative expressions stay readable. The tool does not
+      twelve so the derivative expressions stay readable. Very large
+      derivative expressions (for example a high-degree tangent expansion) are
+      rejected with a message asking for a lower degree. The tool does not
       estimate a remainder or a radius of convergence.
     </p>
   </section>

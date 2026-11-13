@@ -1,0 +1,15 @@
+[package]
+name = "boolean"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+logic = { path = "../logic", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+wasm-bindgen.workspace = true

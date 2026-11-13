@@ -5,7 +5,7 @@
   import MathText from './MathText.svelte';
   import Tabs from './Tabs.svelte';
   import ExportBar from './ExportBar.svelte';
-  import { build, type LogicResult } from '../lib/logic';
+  import { build, preloadLogic, type LogicResult } from '../lib/logic';
   import { logicLabelToLatex } from '../lib/math-input';
 
   type Example = 'modus' | 'demorgan' | 'tautology' | 'contradiction';
@@ -15,11 +15,11 @@
   let error = $state('');
   let tab = $state<'table' | 'latex'>('table');
 
-  function run() {
+  async function run() {
     error = '';
     result = null;
     try {
-      result = build(formula);
+      result = await build(formula);
       tab = 'table';
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
@@ -34,7 +34,7 @@
     else if (kind === 'demorgan') formula = '~(p & q) <-> (~p | ~q)';
     else if (kind === 'tautology') formula = 'p | ~p';
     else formula = 'p & ~p';
-    run();
+    void run();
   }
 
   const verdictLabel = $derived(
@@ -45,21 +45,22 @@
       : ''
   );
 
-  run();
+  preloadLogic();
+  void run();
 </script>
 
 <form
   class="panel"
   onsubmit={(event: SubmitEvent) => {
     event.preventDefault();
-    run();
+    void run();
   }}
 >
   <h2 class="panel-title">Formula</h2>
 
   <div class="formula-field">
     <span class="field-label">Proposition</span>
-    <MathField bind:value={formula} format="logic" showEnter={false} ariaLabel="Propositional formula" onEnter={run} />
+    <MathField bind:value={formula} format="logic" showEnter={false} ariaLabel="Propositional formula" onEnter={() => void run()} />
   </div>
 
   <div class="example-row">

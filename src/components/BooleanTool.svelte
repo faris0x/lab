@@ -6,18 +6,18 @@
   import Tabs from './Tabs.svelte';
   import ExportBar from './ExportBar.svelte';
   import { logicLabelToLatex } from '../lib/math-input';
-  import { simplifyBoolean, type BooleanResult } from '../lib/boolean';
+  import { preloadBoolean, simplifyBoolean, type BooleanResult } from '../lib/boolean';
 
   let formula = $state('(p & q) | (p & ~q)');
   let result = $state<BooleanResult | null>(null);
   let error = $state('');
   let tab = $state<'simplify' | 'table' | 'latex'>('simplify');
 
-  function run() {
+  async function run() {
     error = '';
     result = null;
     try {
-      result = simplifyBoolean(formula);
+      result = await simplifyBoolean(formula);
       tab = 'simplify';
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
@@ -27,24 +27,25 @@
   function example(source: string) {
     formula = source;
     error = '';
-    run();
+    void run();
   }
 
-  run();
+  preloadBoolean();
+  void run();
 </script>
 
 <form
   class="panel"
   onsubmit={(event: SubmitEvent) => {
     event.preventDefault();
-    run();
+    void run();
   }}
 >
   <h2 class="panel-title">Boolean expression</h2>
 
   <div class="formula-field">
     <span class="field-label">Statement</span>
-    <MathField bind:value={formula} format="logic" showEnter={false} ariaLabel="Boolean expression" onEnter={run} />
+    <MathField bind:value={formula} format="logic" showEnter={false} ariaLabel="Boolean expression" onEnter={() => void run()} />
   </div>
 
   <div class="example-row">
@@ -133,8 +134,8 @@
           <li>
             <span class="prime-expression"><MathText text={`$${logicLabelToLatex(prime.expression)}$`} /></span>
             <span>covers {prime.covers.join(', ')}</span>
-            {#if result.essential.includes(prime)}<b>essential</b>{/if}
-            {#if result.selected.includes(prime) && !result.essential.includes(prime)}<b>selected</b>{/if}
+            {#if result.essential.some((entry) => entry.bits === prime.bits)}<b>essential</b>{/if}
+            {#if result.selected.some((entry) => entry.bits === prime.bits) && !result.essential.some((entry) => entry.bits === prime.bits)}<b>selected</b>{/if}
           </li>
         {/each}
       </ul>

@@ -47,7 +47,7 @@ export const tools: ToolMeta[] = [
     title: 'Taylor & Maclaurin series',
     tag: 'Live · Series',
     description:
-      'Expand a function about a point. Every derivative, value and coefficient is shown, and the finished series exports as a .tex file.'
+      'Expand a function about a point. Every derivative, value and coefficient is shown, the general nth term is detected when possible, and the finished series exports as a .tex file.'
   },
   {
     key: 'logic',

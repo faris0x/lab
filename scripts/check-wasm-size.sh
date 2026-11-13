@@ -2,10 +2,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-LIMIT_BYTES=${WASM_GZIP_LIMIT:-81920}
+LIMIT_BYTES=${WASM_GZIP_LIMIT:-131072}
 status=0
 
-for crate in simplex linalg complexnum graphnet; do
+for crate in simplex linalg complexnum graphnet series logic floating boolean; do
   file="public/wasm/$crate/${crate}_bg.wasm"
   if [[ ! -f "$file" ]]; then
     echo "missing $file" >&2

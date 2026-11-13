@@ -29,7 +29,7 @@ if [[ "${WASM_BUILD_STD:-0}" == "1" ]]; then
   BUILD_ARGS+=(-Z build-std=std,panic_abort)
 fi
 
-for crate in simplex linalg complexnum graphnet; do
+for crate in simplex linalg complexnum graphnet series logic floating boolean; do
   cargo build \
     "${BUILD_ARGS[@]}" \
     --manifest-path rust/Cargo.toml \

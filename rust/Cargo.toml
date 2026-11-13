@@ -1,5 +1,15 @@
 [workspace]
-members = ["crates/mathcore", "crates/simplex", "crates/linalg", "crates/complexnum", "crates/graphnet"]
+members = [
+    "crates/mathcore",
+    "crates/simplex",
+    "crates/linalg",
+    "crates/complexnum",
+    "crates/graphnet",
+    "crates/series",
+    "crates/logic",
+    "crates/floating",
+    "crates/boolean"
+]
 resolver = "2"
 
 [workspace.package]

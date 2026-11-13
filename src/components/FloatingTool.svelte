@@ -15,6 +15,7 @@
     encodeCustom,
     encodeIeee,
     normalise,
+    preloadFloating,
     type Base,
     type BaseResult,
     type CustomFloatResult,
@@ -141,35 +142,36 @@
     }
   }
 
-  function run() {
+  async function run() {
     clearResults();
     try {
-      if (mode === 'convert') baseResult = convertBases(input, from);
-      else if (mode === 'normalise') normalResult = normalise(input, from);
+      if (mode === 'convert') baseResult = await convertBases(input, from);
+      else if (mode === 'normalise') normalResult = await normalise(input, from);
       else if (mode === 'custom') {
         customResult =
           customAction === 'encode'
-            ? encodeCustom(input, exponentBits, mantissaBits)
-            : decodeCustom(input, exponentBits, mantissaBits);
+            ? await encodeCustom(input, exponentBits, mantissaBits)
+            : await decodeCustom(input, exponentBits, mantissaBits);
       } else {
         ieeeResult =
           ieeeAction === 'encode'
-            ? encodeIeee(input, ieeeKind)
-            : decodeIeee(input, ieeeKind);
+            ? await encodeIeee(input, ieeeKind)
+            : await decodeIeee(input, ieeeKind);
       }
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     }
   }
 
-  run();
+  preloadFloating();
+  void run();
 </script>
 
 <form
   class="panel"
   onsubmit={(event: SubmitEvent) => {
     event.preventDefault();
-    run();
+    void run();
   }}
 >
   <h2 class="panel-title">Floating point toolkit</h2>
@@ -195,7 +197,7 @@
         base={inputBase}
         ariaLabel={inputLabel}
         showEnter={false}
-        onEnter={run}
+        onEnter={() => void run()}
       />
     </div>
 

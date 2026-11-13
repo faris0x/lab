@@ -13,7 +13,16 @@ const routes = [
   '/404'
 ];
 
-const wasmModules = ['simplex', 'linalg', 'complexnum', 'graphnet'];
+const wasmModules = [
+  'simplex',
+  'linalg',
+  'complexnum',
+  'graphnet',
+  'series',
+  'logic',
+  'floating',
+  'boolean'
+];
 
 test.describe('routes', () => {
   for (const route of routes) {
@@ -52,6 +61,14 @@ test('expands a Maclaurin series', async ({ page }) => {
   await page.goto('/series');
   await page.getByRole('button', { name: 'Expand', exact: true }).click();
   await expect(page.locator('.status')).toHaveText('Maclaurin series');
+});
+
+test('detects the general term of sin x', async ({ page }) => {
+  await page.goto('/series');
+  await page.getByRole('button', { name: 'Expand', exact: true }).click();
+  await expect(page.locator('.status')).toHaveText('Maclaurin series');
+  await expect(page.locator('.general-term')).toBeVisible();
+  await expect(page.locator('.general-term')).toContainText('General term');
 });
 
 test('accepts ln(1-3x) and offers function keys', async ({ page }) => {

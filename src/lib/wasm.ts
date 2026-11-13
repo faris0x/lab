@@ -1,4 +1,12 @@
-export type SolverModule = 'simplex' | 'linalg' | 'complexnum' | 'graphnet';
+export type SolverModule =
+  | 'simplex'
+  | 'linalg'
+  | 'complexnum'
+  | 'graphnet'
+  | 'series'
+  | 'logic'
+  | 'floating'
+  | 'boolean';
 
 interface GeneratedModule {
   default: (moduleOrPath?: string | URL | Request) => Promise<unknown>;

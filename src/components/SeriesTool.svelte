@@ -9,6 +9,7 @@
   import {
     expandSeries,
     MAX_ORDER,
+    preloadSeries,
     type SeriesResult
   } from '../lib/series';
 
@@ -21,11 +22,11 @@
   let error = $state('');
   let tab = $state<'terms' | 'latex'>('terms');
 
-  function run() {
+  async function run() {
     error = '';
     result = null;
     try {
-      result = expandSeries(source, center, order);
+      result = await expandSeries(source, center, order);
       tab = 'terms';
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
@@ -61,7 +62,7 @@
       center = '1';
       order = 3;
     }
-    run();
+    void run();
   }
 
   const seriesTitle = $derived(
@@ -78,14 +79,15 @@
       : ''
   );
 
-  run();
+  preloadSeries();
+  void run();
 </script>
 
 <form
   class="panel"
   onsubmit={(event: SubmitEvent) => {
     event.preventDefault();
-    run();
+    void run();
   }}
 >
   <h2 class="panel-title">Function</h2>
@@ -98,7 +100,7 @@
       variables={['x']}
       showEnter={false}
       ariaLabel="Function of x"
-      onEnter={run}
+      onEnter={() => void run()}
     />
   </div>
 
@@ -110,7 +112,7 @@
         format="number"
         showEnter={false}
         ariaLabel="Centre of expansion"
-        onEnter={run}
+        onEnter={() => void run()}
       />
     </div>
     <label class="field">
@@ -234,6 +236,24 @@
           <MathText text="$\\sin(1)$" />.
         </p>
       </div>
+
+      {#if result.general}
+        <div class="general-term">
+          <h3>General term</h3>
+          <div class="result-math">
+            <MathBlock latex={`T_n = ${result.general.termLatex}`} display />
+          </div>
+          <div class="result-math">
+            <MathBlock latex={result.general.sumLatex} display />
+          </div>
+          <p class="hint">{result.general.note}</p>
+        </div>
+      {:else}
+        <p class="hint">
+          No simple closed form was detected for this series. The nth term is
+          still <MathText text={'$f^{(n)}(a)(x-a)^n/n!$'} />.
+        </p>
+      {/if}
     {:else}
       <div class="latex-preview">
         <LatexPreview latex={result.latex} />
@@ -322,6 +342,24 @@
 
   .series-notes strong {
     color: var(--fg);
+  }
+
+
+  .general-term {
+    margin-top: 1rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg-soft);
+  }
+
+  .general-term h3 {
+    margin: 0 0 0.5rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg-faint);
   }
 
   @media (max-width: 640px) {
