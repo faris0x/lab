@@ -18,6 +18,7 @@ pub struct PrimeImplicant {
 }
 
 #[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BooleanResult {
     pub formula: String,
     pub variables: Vec<String>,
@@ -480,6 +481,13 @@ mod tests {
         let result = simplify_boolean("a & b").unwrap();
         assert_eq!(result.minterms, vec![3]);
         assert_eq!(result.maxterms, vec![0, 1, 2]);
+    }
+
+    #[test]
+    fn serialises_camel_case_field_names() {
+        let output = solve_json(r#"{"formula":"a & b"}"#);
+        assert!(output.contains("\"canonicalSop\""));
+        assert!(output.contains("\"canonicalPos\""));
     }
 
     #[test]
