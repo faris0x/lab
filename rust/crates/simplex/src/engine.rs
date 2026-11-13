@@ -429,8 +429,8 @@ fn pivot(tab: &mut Tableau, r: usize, c: usize) -> Result<(), String> {
     let pr = pv.a;
     let width = tab.headers.len();
 
-    for j in 0..width {
-        tab.rows[r][j] = tab.rows[r][j].div_rat(pr)?;
+    for cell in tab.rows[r].iter_mut().take(width) {
+        *cell = cell.div_rat(pr)?;
     }
     tab.rhs[r] = tab.rhs[r].div_rat(pr)?;
 
@@ -446,7 +446,8 @@ fn pivot(tab: &mut Tableau, r: usize, c: usize) -> Result<(), String> {
             return Err("internal error: non-rational constraint coefficient".into());
         }
         for j in 0..width {
-            tab.rows[i][j] = tab.rows[i][j].sub(tab.rows[r][j].mul_rat(f.a)?)?;
+            let above = tab.rows[r][j];
+            tab.rows[i][j] = tab.rows[i][j].sub(above.mul_rat(f.a)?)?;
         }
         tab.rhs[i] = tab.rhs[i].sub(tab.rhs[r].mul_rat(f.a)?)?;
         tab.rows[i][c] = MVal::ZERO;
@@ -454,9 +455,8 @@ fn pivot(tab: &mut Tableau, r: usize, c: usize) -> Result<(), String> {
 
     let f = tab.obj[c];
     if !f.is_zero() {
-        for j in 0..width {
-            let row_cell = tab.rows[r][j].a;
-            tab.obj[j] = tab.obj[j].sub(f.mul_rat(row_cell)?)?;
+        for (objective, row_cell) in tab.obj.iter_mut().zip(tab.rows[r].iter()).take(width) {
+            *objective = objective.sub(f.mul_rat(row_cell.a)?)?;
         }
         let rhs_cell = tab.rhs[r].a;
         tab.obj_rhs = tab.obj_rhs.sub(f.mul_rat(rhs_cell)?)?;
@@ -469,11 +469,11 @@ fn pivot(tab: &mut Tableau, r: usize, c: usize) -> Result<(), String> {
 
 fn row_ops_for(tab: &Tableau, r: usize, c: usize) -> Result<Vec<RowOp>, String> {
     let mut ops = Vec::new();
-    for i in 0..tab.rows.len() {
+    for (i, row) in tab.rows.iter().enumerate() {
         if i == r {
             continue;
         }
-        let f = tab.rows[i][c];
+        let f = row[c];
         if !f.is_zero() {
             if !f.b.is_zero() {
                 return Err("internal error: M in a constraint row".into());

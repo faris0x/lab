@@ -201,8 +201,8 @@ pub fn rref(mut m: Matrix, start: &str, start_latex: &str) -> Result<Rref, Strin
             break;
         }
         let mut found = None;
-        for r in pivot_row..m.rows {
-            if !m.data[r][col].is_zero() {
+        for (r, row) in m.data.iter().enumerate().take(m.rows).skip(pivot_row) {
+            if !row[col].is_zero() {
                 found = Some(r);
                 break;
             }
@@ -318,8 +318,8 @@ pub fn determinant(m: Matrix) -> Result<Determinant, String> {
 
     for col in 0..n {
         let mut found = None;
-        for r in col..n {
-            if !m.data[r][col].is_zero() {
+        for (r, row) in m.data.iter().enumerate().take(n).skip(col) {
+            if !row[col].is_zero() {
                 found = Some(r);
                 break;
             }
@@ -570,11 +570,11 @@ pub fn matrix_latex(m: &Matrix, pivot: Option<(usize, usize)>) -> String {
     };
     let mut out = open;
     for i in 0..m.rows {
-        for j in 0..m.cols {
+        for (j, cell) in m.data[i].iter().enumerate().take(m.cols) {
             if j > 0 {
                 out.push_str(" & ");
             }
-            let value = m.data[i][j].latex();
+            let value = cell.latex();
             if pivot == Some((i, j)) {
                 out.push_str("\\boxed{");
                 out.push_str(&value);

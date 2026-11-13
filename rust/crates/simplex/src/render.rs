@@ -204,9 +204,9 @@ pub fn tableau_latex(tab: &Tableau, pivot: Option<(usize, usize)>) -> String {
     for i in 0..tab.rows.len() {
         let b = tab.basis[i];
         out.push_str(&var_latex(&tab.headers[b].name));
-        for j in 0..width {
+        for (j, cell) in tab.rows[i].iter().enumerate().take(width) {
             out.push_str(" & ");
-            out.push_str(&cell_latex(tab.rows[i][j], pivot == Some((i, j))));
+            out.push_str(&cell_latex(*cell, pivot == Some((i, j))));
         }
         out.push_str(" & ");
         out.push_str(&tab.rhs[i].latex());
@@ -215,9 +215,9 @@ pub fn tableau_latex(tab: &Tableau, pivot: Option<(usize, usize)>) -> String {
 
     out.push_str("\\hline\n");
     out.push('Z');
-    for j in 0..width {
+    for cell in tab.obj.iter().take(width) {
         out.push_str(" & ");
-        out.push_str(&tab.obj[j].latex());
+        out.push_str(&cell.latex());
     }
     out.push_str(" & ");
     out.push_str(&tab.obj_rhs.latex());
