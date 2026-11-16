@@ -989,8 +989,8 @@ fn validate_tableau(tab: &Tableau, options: &FinishOptions) -> Result<(), String
         if header.name.trim().is_empty() {
             return Err(format!("column {} needs a name", i + 1));
         }
-        for other in i + 1..width {
-            if tab.headers[other].name == header.name {
+        for other in tab.headers.iter().skip(i + 1) {
+            if other.name == header.name {
                 return Err(format!("duplicate column name '{}'", header.name));
             }
         }
