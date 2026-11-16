@@ -137,6 +137,28 @@
       : [...list, column].sort((a, b) => a - b);
   }
 
+  function nextVariableName(): string {
+    const used = new Set(tHeaders.map((header) => header.trim()));
+    for (const name of ['z', 'w', 'v', 'u', 't', 'r', 'p', 'q']) {
+      if (!used.has(name)) return name;
+    }
+    let index = 1;
+    while (used.has(`x${index}`)) index += 1;
+    return `x${index}`;
+  }
+
+  function setTableauHeader(column: number, value: string) {
+    tHeaders = tHeaders.map((header, index) => (index === column ? value : header));
+  }
+
+  function addTableauVariable() {
+    const column = tHeaders.length;
+    tHeaders = [...tHeaders, nextVariableName()];
+    tRows = tRows.map((row) => [...row, '0']);
+    tObj = [...tObj, '0'];
+    tDecision = toggleColumn(tDecision, column);
+  }
+
   function setTableauRows(next: number) {
     if (next < 1 || next > 10) return;
     if (next < tRows.length) {
@@ -164,9 +186,10 @@
     } else {
       while (tHeaders.length < next) {
         const column = tHeaders.length;
-        tHeaders = [...tHeaders, `c${column + 1}`];
+        tHeaders = [...tHeaders, nextVariableName()];
         tRows = tRows.map((row) => [...row, '0']);
         tObj = [...tObj, '0'];
+        tDecision = toggleColumn(tDecision, column);
       }
     }
   }
@@ -542,7 +565,11 @@
               <th scope="col">
                 <input
                   class="tableau-header"
-                  bind:value={tHeaders[column]}
+                  value={tHeaders[column]}
+                  oninput={(event) =>
+                    setTableauHeader(column, event.currentTarget.value)}
+                  placeholder={`variable ${column + 1}`}
+                  title="Rename this variable"
                   aria-label={`column ${column + 1} name`}
                 />
               </th>
@@ -619,7 +646,7 @@
 
     <div class="tableau-picks">
       <div>
-        <span>Decision columns</span>
+        <span>Decision variables</span>
         {#each tHeaders as header, column}
           <label>
             <input
@@ -632,7 +659,7 @@
         {/each}
       </div>
       <div>
-        <span>Artificial columns</span>
+        <span>Artificial variables</span>
         {#each tHeaders as header, column}
           <label>
             <input
@@ -662,8 +689,8 @@
       <button class="btn btn-ghost" type="button" onclick={() => setTableauRows(tRows.length + 1)}
         >+ Add row</button
       >
-      <button class="btn btn-ghost" type="button" onclick={() => setTableauColumns(tHeaders.length + 1)}
-        >+ Add column</button
+      <button class="btn btn-ghost" type="button" onclick={addTableauVariable}
+        >+ Add variable</button
       >
     </div>
   {/if}
@@ -672,10 +699,11 @@
     <p class="hint">{@html ar ? hintHtmlAr : hintHtml}</p>
   {:else}
     <p class="hint">
-      Cells accept exact rationals and Big-M expressions such as
-      <code>1 + M</code>, <code>-M</code> or <code>2M</code>. Each row’s basic
-      variable must be a unit column. The objective row uses the
-      <code>Z − c'x + M a = 0</code> convention.
+      Rename the header cells freely and use <strong>Add variable</strong> for
+      extra decision columns. Cells accept exact rationals and Big-M
+      expressions such as <code>1 + M</code>, <code>-M</code> or
+      <code>2M</code>. Each row’s basic variable must be a unit column. The
+      objective row uses the <code>Z − c'x + M a = 0</code> convention.
     </p>
   {/if}
 

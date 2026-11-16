@@ -78,6 +78,13 @@ test('finishes a partially completed tableau', async ({ page }) => {
   await expect(page.locator('.tableau-grid')).toBeVisible();
 });
 
+test('adds a new decision variable in the tableau finisher', async ({ page }) => {
+  await page.goto('/optimisation');
+  await page.getByRole('tab', { name: 'Finish tableau' }).click();
+  await page.getByRole('button', { name: '+ Add variable', exact: true }).click();
+  await expect(page.getByLabel('column 5 name')).toHaveValue('z');
+});
+
 test('finishes a Big-M tableau', async ({ page }) => {
   await page.goto('/optimisation');
   await page.getByRole('tab', { name: 'Finish tableau' }).click();
