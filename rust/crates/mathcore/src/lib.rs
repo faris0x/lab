@@ -165,6 +165,12 @@ impl Default for Rat {
     }
 }
 
+impl From<Rat> for MVal {
+    fn from(value: Rat) -> Self {
+        MVal::rat(value)
+    }
+}
+
 impl PartialOrd for Rat {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))

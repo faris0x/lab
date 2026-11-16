@@ -57,6 +57,36 @@ test('solves the default simplex problem', async ({ page }) => {
   });
 });
 
+test('solves a problem with two-stage simplex', async ({ page }) => {
+  await page.goto('/optimisation');
+  await page.getByLabel('Method').selectOption('two-stage');
+  await page.getByRole('button', { name: 'Big-M', exact: true }).click();
+  await page.getByRole('button', { name: 'Solve', exact: true }).click();
+  await expect(page.locator('.status')).toHaveText('Optimal');
+  await expect(page.locator('.summary')).toContainText('Phase 1');
+});
+
+test('finishes a partially completed tableau', async ({ page }) => {
+  await page.goto('/optimisation');
+  await page.getByRole('tab', { name: 'Finish tableau' }).click();
+  await page.getByRole('button', { name: 'One pivot left', exact: true }).click();
+  await page.getByRole('button', { name: 'Finish tableau', exact: true }).click();
+  await expect(page.locator('.status')).toHaveText('Optimal');
+  await expect(
+    page.getByText('Continue from the tableau supplied in the editor.')
+  ).toBeVisible();
+  await expect(page.locator('.tableau-grid')).toBeVisible();
+});
+
+test('finishes a Big-M tableau', async ({ page }) => {
+  await page.goto('/optimisation');
+  await page.getByRole('tab', { name: 'Finish tableau' }).click();
+  await page.getByRole('button', { name: 'Big-M', exact: true }).click();
+  await page.getByRole('button', { name: 'Finish tableau', exact: true }).click();
+  await expect(page.locator('.status')).toHaveText('Optimal');
+  await expect(page.locator('.tableau-grid')).toBeVisible();
+});
+
 test('expands a Maclaurin series', async ({ page }) => {
   await page.goto('/series');
   await page.getByRole('button', { name: 'Expand', exact: true }).click();

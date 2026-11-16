@@ -18,7 +18,7 @@ export const tools: ToolMeta[] = [
     title: 'Simplex & Big-M',
     tag: 'Live · Optimisation',
     description:
-      'Set up a linear program and move through its tableaus. The arithmetic stays exact; Big-M uses a symbolic penalty. The worked solution exports as a .tex file.'
+      'Set up a linear program or continue from a partially completed tableau. Choose Big-M or two-stage simplex; the arithmetic stays exact. The worked solution exports as a .tex file.'
   },
   {
     key: 'matrix',

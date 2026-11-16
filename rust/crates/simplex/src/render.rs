@@ -2,8 +2,8 @@
 //! HTML; LaTeX is generated here from the same structured trace.
 
 use crate::engine::{
-    row_op_latex, row_op_plain, var_latex, Ratio, RowOp, Sense, Solution, Status, Step, StepKind,
-    Tableau,
+    row_op_latex, row_op_plain, var_latex, Method, Ratio, RowOp, Sense, Solution, Source, Standard,
+    Status, Step, StepKind, Tableau,
 };
 use mathcore::{MVal, Rat};
 use serde::Serialize;
@@ -87,6 +87,7 @@ impl From<&RowOp> for RowOpJson {
 #[serde(rename_all = "camelCase")]
 pub struct StepJson {
     pub kind: String,
+    pub phase: u8,
     pub index: usize,
     pub headers: Vec<String>,
     pub headers_latex: Vec<String>,
@@ -141,6 +142,8 @@ pub struct LatexJson {
 #[serde(rename_all = "camelCase")]
 pub struct Output {
     pub ok: bool,
+    pub mode: String,
+    pub method: String,
     pub status: String,
     pub sense: String,
     pub transformed: bool,
@@ -148,7 +151,7 @@ pub struct Output {
     pub objective_label: String,
     pub objective: String,
     pub objective_latex: String,
-    pub standard_form: StandardFormJson,
+    pub standard_form: Option<StandardFormJson>,
     pub steps: Vec<StepJson>,
     pub solution: Vec<SolutionJson>,
     pub optimum: Option<ValueJson>,
@@ -160,6 +163,7 @@ pub struct Output {
 
 fn kind_str(k: StepKind) -> &'static str {
     match k {
+        StepKind::Start => "start",
         StepKind::Iteration => "iteration",
         StepKind::Optimal => "optimal",
         StepKind::Unbounded => "unbounded",
@@ -184,7 +188,11 @@ fn cell_latex(v: MVal, pivot: bool) -> String {
     }
 }
 
-pub fn tableau_latex(tab: &Tableau, pivot: Option<(usize, usize)>) -> String {
+pub fn tableau_latex(
+    tab: &Tableau,
+    pivot: Option<(usize, usize)>,
+    objective_label: &str,
+) -> String {
     let width = tab.headers.len();
     let mut spec = String::from("c|");
     for _ in 0..width {
@@ -214,7 +222,7 @@ pub fn tableau_latex(tab: &Tableau, pivot: Option<(usize, usize)>) -> String {
     }
 
     out.push_str("\\hline\n");
-    out.push('Z');
+    out.push_str(objective_label);
     for cell in tab.obj.iter().take(width) {
         out.push_str(" & ");
         out.push_str(&cell.latex());
@@ -225,42 +233,59 @@ pub fn tableau_latex(tab: &Tableau, pivot: Option<(usize, usize)>) -> String {
     out
 }
 
-fn standard_block(sol: &Solution) -> String {
+fn standard_block(standard: &Standard) -> String {
     let mut out = String::from("\\begin{aligned}\n");
     out.push_str("& ");
-    out.push_str(&sol.standard.objective_latex);
+    out.push_str(&standard.objective_latex);
     out.push_str(" \\\\\n");
-    for line in &sol.standard.constraint_latex {
+    for line in &standard.constraint_latex {
         out.push_str("& ");
         out.push_str(line);
         out.push_str(" \\\\\n");
     }
     out.push_str("& ");
-    out.push_str(&sol.standard.objective_row_latex);
+    out.push_str(&standard.objective_row_latex);
     out.push_str(" \\\\\n\\end{aligned}");
     out
 }
 
 fn summary_block(sol: &Solution) -> String {
+    let (label, names) = match &sol.source {
+        Source::Model { model, .. } => (
+            if model.sense == Sense::Min { "C" } else { "Z" },
+            model.vars.clone(),
+        ),
+        Source::Tableau {
+            start,
+            decision_cols,
+            objective_label,
+            ..
+        } => (
+            objective_label.as_str(),
+            decision_cols
+                .iter()
+                .map(|&column| start.headers[column].name.clone())
+                .collect(),
+        ),
+    };
     match sol.status {
         Status::Optimal => {
             let value = sol.optimum.unwrap_or(Rat::ZERO);
-            let label = if sol.model.sense == Sense::Min {
-                "C"
-            } else {
-                "Z"
-            };
             let mut bits = Vec::new();
             for (i, v) in sol.values.iter().enumerate() {
-                bits.push(format!("{} = {}", var_latex(&sol.model.vars[i]), v.latex()));
+                bits.push(format!("{} = {}", var_latex(&names[i]), v.latex()));
             }
-            format!(
-                "\\text{{Optimal value }} {label} = {} \\text{{ at }} {}",
-                value.latex(),
-                bits.join(",\\; ")
-            )
+            if bits.is_empty() {
+                format!("\\text{{Optimal value }} {label} = {}", value.latex())
+            } else {
+                format!(
+                    "\\text{{Optimal value }} {label} = {} \\text{{ at }} {}",
+                    value.latex(),
+                    bits.join(",\\; ")
+                )
+            }
         }
-        Status::Infeasible => "\\text{The problem is infeasible.}".to_string(),
+        Status::Infeasible => "\\text{The tableau is infeasible.}".to_string(),
         Status::Unbounded => "\\text{The objective is unbounded.}".to_string(),
     }
 }
@@ -269,10 +294,16 @@ fn step_latex(step: &Step, index: usize) -> String {
     let mut out = String::new();
     out.push_str(&format!(
         "\\subsection*{{{}}}\n",
-        if step.kind == StepKind::Iteration {
-            format!("Tableau {}", index + 1)
-        } else {
-            "Final tableau".to_string()
+        match step.kind {
+            StepKind::Start => "Starting tableau".to_string(),
+            StepKind::Iteration if step.phase > 0 => {
+                format!("Phase {} · Tableau {}", step.phase, index + 1)
+            }
+            StepKind::Iteration => format!("Tableau {}", index + 1),
+            _ if step.phase > 0 => {
+                format!("Phase {} · Final tableau", step.phase)
+            }
+            _ => "Final tableau".to_string(),
         }
     ));
     for line in &step.note_latex {
@@ -280,9 +311,24 @@ fn step_latex(step: &Step, index: usize) -> String {
         out.push_str("\n\n");
     }
     out.push_str("\\[\n");
-    out.push_str(&tableau_latex(&step.tableau, step.pivot));
+    let objective_label = if step.phase == 1 { "W" } else { "Z" };
+    out.push_str(&tableau_latex(&step.tableau, step.pivot, objective_label));
     out.push_str("\n\\]\n");
     out
+}
+
+fn method_name(method: Method) -> &'static str {
+    match method {
+        Method::BigM => "Big-M",
+        Method::TwoStage => "Two-stage simplex",
+    }
+}
+
+fn method_id(method: Method) -> &'static str {
+    match method {
+        Method::BigM => "bigm",
+        Method::TwoStage => "two-stage",
+    }
 }
 
 fn document(sol: &Solution) -> String {
@@ -293,13 +339,23 @@ fn document(sol: &Solution) -> String {
     out.push_str("\\setlength{\\parindent}{0pt}\n");
     out.push_str("\\begin{document}\n");
     out.push_str("\\section*{Linear programming: simplex method}\n");
-    out.push_str("\\textbf{Problem.} $");
-    out.push_str(&sol.standard.objective_latex);
-    out.push_str("$\\\\[4pt]\n");
-    out.push_str("\\textbf{Standard form.}\n");
-    out.push_str("\\[\n");
-    out.push_str(&standard_block(sol));
-    out.push_str("\n\\]\n");
+    match &sol.source {
+        Source::Model {
+            standard, method, ..
+        } => {
+            out.push_str("\\textbf{Problem.} $");
+            out.push_str(&standard.objective_latex);
+            out.push_str("$\\\\[4pt]\n");
+            out.push_str("\\textbf{Standard form.}\n");
+            out.push_str("\\[\n");
+            out.push_str(&standard_block(standard));
+            out.push_str("\n\\]\n");
+            out.push_str(&format!("\\textbf{{Method.}} {}.\n", method_name(*method)));
+        }
+        Source::Tableau { .. } => {
+            out.push_str("\\textbf{Starting tableau.} The supplied tableau is continued below.\n");
+        }
+    }
 
     for (i, step) in sol.steps.iter().enumerate() {
         out.push_str(&step_latex(step, i));
@@ -320,6 +376,7 @@ pub fn render(sol: &Solution) -> Output {
         let tab = &step.tableau;
         steps.push(StepJson {
             kind: kind_str(step.kind).to_string(),
+            phase: step.phase,
             index: i,
             headers: tab.headers.iter().map(|h| h.name.clone()).collect(),
             headers_latex: tab.headers.iter().map(|h| h.latex()).collect(),
@@ -343,13 +400,60 @@ pub fn render(sol: &Solution) -> Output {
             row_ops: step.row_ops.iter().map(RowOpJson::from).collect(),
             prose: step.note_plain.clone(),
             prose_latex: step.note_latex.clone(),
-            latex: tableau_latex(tab, step.pivot),
+            latex: tableau_latex(tab, step.pivot, if step.phase == 1 { "W" } else { "Z" }),
         });
     }
 
-    let solution: Vec<SolutionJson> = sol
-        .model
-        .vars
+    let (mode, method, vars, sense, transformed, objective_label, objective, objective_latex) =
+        match &sol.source {
+            Source::Model {
+                model,
+                standard,
+                method,
+            } => (
+                "model",
+                method_id(*method),
+                model.vars.clone(),
+                if model.sense == Sense::Max {
+                    "max".to_string()
+                } else {
+                    "min".to_string()
+                },
+                standard.transformed,
+                if model.sense == Sense::Min {
+                    "C".to_string()
+                } else {
+                    "Z".to_string()
+                },
+                standard.objective_plain.clone(),
+                standard.objective_latex.clone(),
+            ),
+            Source::Tableau {
+                start,
+                decision_cols,
+                objective_label,
+                report_sign,
+                ..
+            } => (
+                "tableau",
+                "tableau",
+                decision_cols
+                    .iter()
+                    .map(|&column| start.headers[column].name.clone())
+                    .collect(),
+                if *report_sign < 0 {
+                    "min".to_string()
+                } else {
+                    "max".to_string()
+                },
+                *report_sign < 0,
+                objective_label.clone(),
+                "Finish the supplied tableau".to_string(),
+                "\\text{Finish the supplied tableau}".to_string(),
+            ),
+        };
+
+    let solution: Vec<SolutionJson> = vars
         .iter()
         .enumerate()
         .map(|(i, name)| {
@@ -363,37 +467,43 @@ pub fn render(sol: &Solution) -> Output {
         })
         .collect();
 
-    let mut blocks = vec![standard_block(sol)];
+    let mut blocks = Vec::new();
+    if let Source::Model { standard, .. } = &sol.source {
+        blocks.push(standard_block(standard));
+    }
     for step in &sol.steps {
-        blocks.push(tableau_latex(&step.tableau, step.pivot));
+        blocks.push(tableau_latex(
+            &step.tableau,
+            step.pivot,
+            if step.phase == 1 { "W" } else { "Z" },
+        ));
     }
     blocks.push(summary_block(sol));
 
+    let standard_form = match &sol.source {
+        Source::Model { standard, .. } => Some(StandardFormJson {
+            objective: standard.objective_plain.clone(),
+            objective_latex: standard.objective_latex.clone(),
+            constraints: standard.constraint_plain.clone(),
+            constraints_latex: standard.constraint_latex.clone(),
+            objective_row: standard.objective_row_plain.clone(),
+            objective_row_latex: standard.objective_row_latex.clone(),
+        }),
+        Source::Tableau { .. } => None,
+    };
+
     Output {
         ok: true,
+        mode: mode.to_string(),
+        method: method.to_string(),
         status: status_str(sol.status).to_string(),
-        sense: if sol.model.sense == Sense::Max {
-            "max".to_string()
-        } else {
-            "min".to_string()
-        },
-        transformed: sol.standard.transformed,
-        vars: sol.model.vars.clone(),
-        objective_label: if sol.model.sense == Sense::Min {
-            "C".to_string()
-        } else {
-            "Z".to_string()
-        },
-        objective: sol.standard.objective_plain.clone(),
-        objective_latex: sol.standard.objective_latex.clone(),
-        standard_form: StandardFormJson {
-            objective: sol.standard.objective_plain.clone(),
-            objective_latex: sol.standard.objective_latex.clone(),
-            constraints: sol.standard.constraint_plain.clone(),
-            constraints_latex: sol.standard.constraint_latex.clone(),
-            objective_row: sol.standard.objective_row_plain.clone(),
-            objective_row_latex: sol.standard.objective_row_latex.clone(),
-        },
+        sense,
+        transformed,
+        vars,
+        objective_label,
+        objective,
+        objective_latex,
+        standard_form,
         steps,
         solution,
         optimum: sol.optimum.map(|v| ValueJson {

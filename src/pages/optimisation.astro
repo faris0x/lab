@@ -93,6 +93,38 @@ const hintHtmlAr = `مدخلات دقيقة: ${tex('3/4')}، ${tex('0.5')}، ${t
       large. Pivot decisions follow the exact coefficients, so the tableau
       matches a hand calculation.
     </p>
+    <p class="section-intro">
+      Two-stage simplex solves a phase-one problem that minimises the sum of
+      the artificial variables. If that phase reaches zero, its tableau gives a
+      feasible basis for the original objective in phase two. Choose either
+      method from the <strong>Method</strong> menu.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="finish">
+    <h2 id="finish">Finishing a tableau</h2>
+    <p class="section-intro">
+      Switch to <strong>Finish tableau</strong> to continue from a partly
+      completed simplex or Big-M tableau. Enter the column names, each row’s
+      basic variable, the coefficients, the right-hand side, and the objective
+      row.
+    </p>
+    <ul class="plain-list section-intro">
+      <li>
+        Cells accept exact rationals and Big-M expressions such as
+        <code>1 + M</code>, <code>-M</code> and <code>2M</code>.
+      </li>
+      <li>
+        Every basis column must be a unit column: the basic cell is
+        <code>1</code> and every other entry in that column is
+        <code>0</code>.
+      </li>
+      <li>
+        The objective row follows the same convention as the solver,
+        <code>Z − c'x + M a = 0</code>. Choose <strong>C = −Z</strong> in the
+        report selector when the supplied row is a transformed minimisation.
+      </li>
+    </ul>
   </section>
 
   <section class="section" aria-labelledby="export">

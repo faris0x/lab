@@ -25,10 +25,11 @@ export interface RowOp {
   latex: string;
 }
 
-export type StepKind = 'iteration' | 'optimal' | 'unbounded' | 'infeasible';
+export type StepKind = 'start' | 'iteration' | 'optimal' | 'unbounded' | 'infeasible';
 
 export interface Step {
   kind: StepKind;
+  phase: number;
   index: number;
   headers: string[];
   headersLatex: string[];
@@ -65,6 +66,8 @@ export interface StandardForm {
 
 export interface SolveOutput {
   ok: true;
+  mode: 'model' | 'tableau';
+  method: 'bigm' | 'two-stage' | 'tableau';
   status: 'optimal' | 'unbounded' | 'infeasible';
   sense: 'max' | 'min';
   transformed: boolean;
@@ -72,7 +75,7 @@ export interface SolveOutput {
   objectiveLabel: string;
   objective: string;
   objectiveLatex: string;
-  standardForm: StandardForm;
+  standardForm: StandardForm | null;
   steps: Step[];
   solution: SolutionValue[];
   optimum: { plain: string; latex: string } | null;
@@ -89,6 +92,7 @@ interface SolveError {
 
 export interface SolveInput {
   sense: 'max' | 'min';
+  method?: 'bigm' | 'two-stage';
   vars: string[];
   objective: string[];
   constraints: { coeffs: string[]; op: '<=' | '>=' | '='; rhs: string }[];
@@ -99,10 +103,31 @@ export function preload(): void {
   preloadSolver('simplex');
 }
 
-export async function solve(input: SolveInput): Promise<SolveOutput> {
+export interface FinishTableauInput {
+  objectiveLabel: string;
+  reportAs: 'max' | 'min';
+  headers: string[];
+  basis: number[];
+  decisionColumns: number[];
+  artificialColumns: number[];
+  rows: string[][];
+  rhs: string[];
+  obj: string[];
+  objRhs: string;
+}
+
+async function runSimplex(input: Record<string, unknown>): Promise<SolveOutput> {
   const output = await solveJson<SolveOutput | SolveError>('simplex', input);
   if (!output.ok) {
     throw new Error(output.error);
   }
   return output;
+}
+
+export function solve(input: SolveInput): Promise<SolveOutput> {
+  return runSimplex({ mode: 'model', ...input });
+}
+
+export function finishTableau(input: FinishTableauInput): Promise<SolveOutput> {
+  return runSimplex({ mode: 'tableau', ...input });
 }
