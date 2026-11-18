@@ -86,8 +86,8 @@
   const statusLabel = $derived(
     result
       ? (ar
-          ? { optimal: 'مثلى', unbounded: 'غير محدود', infeasible: 'غير ممكن' }
-          : { optimal: 'Optimal', unbounded: 'Unbounded', infeasible: 'Infeasible' })[
+          ? { optimal: 'مثلى', unbounded: 'غير محدود', infeasible: 'غير ممكن', paused: 'متوقف مؤقتاً' }
+          : { optimal: 'Optimal', unbounded: 'Unbounded', infeasible: 'Infeasible', paused: 'Paused' })[
           result.status
         ]
       : ''
@@ -281,7 +281,37 @@
     }
   }
 
-  async function runTableau() {
+  function ratText(value: { n: number; d: number }): string {
+    return value.d === 1 ? String(value.n) : `${value.n}/${value.d}`;
+  }
+
+  function cellText(cell: { a: { n: number; d: number }; b: { n: number; d: number } }): string {
+    const constant = ratText(cell.a);
+    if (cell.b.n === 0) return constant;
+    const magnitude = `${Math.abs(cell.b.n)}${cell.b.d === 1 ? '' : `/${cell.b.d}`}`;
+    const term = magnitude === '1' ? 'M' : `${magnitude}M`;
+    if (cell.a.n === 0) return cell.b.n < 0 ? `-${term}` : term;
+    return cell.b.n < 0 ? `${constant} - ${term}` : `${constant} + ${term}`;
+  }
+
+  function usePausedTableau() {
+    if (!result) return;
+    const paused = result.steps[result.steps.length - 1];
+    tHeaders = [...paused.headers];
+    tRows = paused.rows.map((row) => row.map(cellText));
+    tRhs = paused.rhs.map(cellText);
+    tObj = paused.obj.map(cellText);
+    tObjRhs = cellText(paused.objRhs);
+    tBasis = paused.basis.map((name) => paused.headers.indexOf(name));
+    tDecision = tDecision.filter((column) => column < tHeaders.length);
+    tArtificial = tArtificial.filter((column) => column < tHeaders.length);
+    result = null;
+    error = '';
+    step = 0;
+    tab = 'steps';
+  }
+
+  async function runTableau(maxPivots?: number) {
     busy = true;
     error = '';
     result = null;
@@ -299,7 +329,8 @@
         rows: tRows,
         rhs: tRhs,
         obj: tObj,
-        objRhs: tObjRhs
+        objRhs: tObjRhs,
+        maxPivots
       });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
@@ -528,8 +559,8 @@
       <label class="field">
         <span>{ar ? 'يُبلَّغ كـ' : 'Report as'}</span>
         <select bind:value={tReportAs}>
-          <option value="max">Z</option>
-          <option value="min">C = −Z</option>
+          <option value="max">{ar ? 'صف Z (تعظيم)' : 'Z-row (maximise)'}</option>
+          <option value="min">{ar ? 'الإبلاغ C = −Z' : 'Report C = −Z'}</option>
         </select>
       </label>
       <label class="field">
@@ -689,6 +720,9 @@
       <button class="btn btn-ghost" type="button" onclick={() => setTableauRows(tRows.length + 1)}
         >+ Add row</button
       >
+      <button class="btn btn-ghost" type="button" onclick={() => void runTableau(1)} disabled={busy}
+        >One pivot</button
+      >
       <button class="btn btn-ghost" type="button" onclick={addTableauVariable}
         >+ Add variable</button
       >
@@ -703,7 +737,9 @@
       extra decision columns. Cells accept exact rationals and Big-M
       expressions such as <code>1 + M</code>, <code>-M</code> or
       <code>2M</code>. Each row’s basic variable must be a unit column. The
-      objective row uses the <code>Z − c'x + M a = 0</code> convention.
+      objective row uses the <code>Z − c'x + M a = 0</code> convention; the
+      pivot rule is always “most negative enters,” even when reporting
+      <code>C = −Z</code>.
     </p>
   {/if}
 
@@ -767,6 +803,14 @@
               <li><MathText text={line} /></li>
             {/each}
           </ul>
+        {/if}
+
+        {#if result.status === 'paused'}
+          <div class="btn-row">
+            <button class="btn btn-ghost btn-small" type="button" onclick={usePausedTableau}
+              >Use paused tableau</button
+            >
+          </div>
         {/if}
 
         <StepControls

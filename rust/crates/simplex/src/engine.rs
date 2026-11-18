@@ -85,12 +85,15 @@ pub enum Status {
     Optimal,
     Unbounded,
     Infeasible,
+    Paused,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StepKind {
     Start,
     Iteration,
+    Transition,
+    Paused,
     Optimal,
     Unbounded,
     Infeasible,
@@ -447,8 +450,24 @@ fn best_ratio(ratios: &[Ratio]) -> Option<Ratio> {
 }
 
 fn pivot(tab: &mut Tableau, r: usize, c: usize) -> Result<(), String> {
+    pivot_with_rule(tab, r, c, true)
+}
+
+fn pivot_force(tab: &mut Tableau, r: usize, c: usize) -> Result<(), String> {
+    pivot_with_rule(tab, r, c, false)
+}
+
+fn pivot_with_rule(
+    tab: &mut Tableau,
+    r: usize,
+    c: usize,
+    require_positive: bool,
+) -> Result<(), String> {
     let pv = tab.rows[r][c];
-    if !(pv.b.is_zero() && pv.a.is_positive()) {
+    if pv.is_zero() || !pv.b.is_zero() {
+        return Err("internal error: pivot must be a nonzero rational".into());
+    }
+    if require_positive && !pv.a.is_positive() {
         return Err("internal error: pivot is not positive".into());
     }
     let pr = pv.a;
@@ -534,6 +553,7 @@ fn iterate(
     artificial_cols: &[usize],
     max_iterations: usize,
     phase: u8,
+    pivot_limit: Option<usize>,
 ) -> Result<ActionResult, String> {
     let mut steps: Vec<Step> = Vec::new();
     let mut iterations = 0usize;
@@ -706,6 +726,28 @@ fn iterate(
 
                 pivot(&mut tab, row, entering)?;
                 iterations += 1;
+                if pivot_limit.is_some_and(|limit| iterations >= limit) {
+                    status = Status::Paused;
+                    steps.push(Step {
+                        kind: StepKind::Paused,
+                        phase,
+                        tableau: tab.clone(),
+                        pivot: None,
+                        entering: None,
+                        leaving: None,
+                        ratios: Vec::new(),
+                        row_ops: Vec::new(),
+                        note_plain: vec![format!(
+                            "Paused after {iterations} pivot{}. Continue when you have checked this tableau.",
+                            if iterations == 1 { "" } else { "s" }
+                        )],
+                        note_latex: vec![format!(
+                            "Paused after {iterations} pivot{}. Continue when you have checked this tableau.",
+                            if iterations == 1 { "" } else { "s" }
+                        )],
+                    });
+                    break;
+                }
             }
         }
     }
@@ -794,6 +836,78 @@ fn phase_two_objective(
     Ok((obj, obj_rhs))
 }
 
+fn remove_artificial_columns(
+    mut tab: Tableau,
+    artificial_cols: &[usize],
+) -> Result<Tableau, String> {
+    let width = tab.headers.len();
+    let rows = tab.rows.len();
+    let mut keep_rows = vec![true; rows];
+    for (r, keep) in keep_rows.iter_mut().enumerate() {
+        if !artificial_cols.contains(&tab.basis[r]) {
+            continue;
+        }
+        if !tab.rhs[r].is_zero() {
+            return Err("an artificial variable is still positive".into());
+        }
+        let candidate = (0..width)
+            .find(|&column| !artificial_cols.contains(&column) && !tab.rows[r][column].is_zero());
+        if let Some(column) = candidate {
+            pivot_force(&mut tab, r, column)?;
+        } else {
+            *keep = false;
+        }
+    }
+
+    let keep_cols: Vec<usize> = (0..width)
+        .filter(|column| !artificial_cols.contains(column))
+        .collect();
+    if keep_cols.is_empty() {
+        return Err("remove artificial columns: no columns left".into());
+    }
+    let mut remap = vec![None; width];
+    for (new_index, &old_index) in keep_cols.iter().enumerate() {
+        remap[old_index] = Some(new_index);
+    }
+
+    let headers = keep_cols
+        .iter()
+        .map(|&column| tab.headers[column].clone())
+        .collect::<Vec<_>>();
+    let mut rows_out = Vec::new();
+    let mut rhs_out = Vec::new();
+    let mut basis_out = Vec::new();
+    for r in 0..rows {
+        if !keep_rows[r] {
+            continue;
+        }
+        let row = keep_cols
+            .iter()
+            .map(|&column| tab.rows[r][column])
+            .collect::<Vec<_>>();
+        let basic =
+            remap[tab.basis[r]].ok_or("remove artificial columns: a basic variable was removed")?;
+        rows_out.push(row);
+        rhs_out.push(tab.rhs[r]);
+        basis_out.push(basic);
+    }
+    if rows_out.is_empty() {
+        return Err("all rows became redundant after removing artificial variables".into());
+    }
+    let obj = keep_cols
+        .iter()
+        .map(|&column| tab.obj[column])
+        .collect::<Vec<_>>();
+    Ok(Tableau {
+        headers,
+        rows: rows_out,
+        rhs: rhs_out,
+        basis: basis_out,
+        obj,
+        obj_rhs: tab.obj_rhs,
+    })
+}
+
 #[cfg(test)]
 fn solve(model: Model) -> Result<Solution, String> {
     solve_with_method(model, Method::BigM)
@@ -813,7 +927,13 @@ pub fn solve_with_method(model: Model, method: Method) -> Result<Solution, Strin
     let mut phase_notes_latex = Vec::new();
 
     let result = match method {
-        Method::BigM => iterate(standard.tableau.clone(), &standard.artificial_cols, 300, 0)?,
+        Method::BigM => iterate(
+            standard.tableau.clone(),
+            &standard.artificial_cols,
+            300,
+            0,
+            None,
+        )?,
         Method::TwoStage => {
             let mut total_iterations = 0usize;
             let mut steps = Vec::new();
@@ -829,7 +949,7 @@ pub fn solve_with_method(model: Model, method: Method) -> Result<Solution, Strin
                     with_prefix_latex("W", &expr_latex(&obj, &phase_one.headers)) + " = 0";
                 phase_one.obj = obj;
                 phase_one.obj_rhs = obj_rhs;
-                let first = iterate(phase_one, &standard.artificial_cols, 300, 1)?;
+                let first = iterate(phase_one, &standard.artificial_cols, 300, 1, None)?;
                 total_iterations += first.iterations;
                 if first.status != Status::Optimal || first.tableau.obj_rhs.a.is_negative() {
                     if first.status == Status::Unbounded {
@@ -868,10 +988,38 @@ pub fn solve_with_method(model: Model, method: Method) -> Result<Solution, Strin
             };
 
             let solved = solved_objective(&model);
-            let (obj, obj_rhs) = phase_two_objective(&tableau, &solved)?;
-            tableau.obj = obj;
-            tableau.obj_rhs = obj_rhs;
-            let second = iterate(tableau, &standard.artificial_cols, 300, phase)?;
+            let mut phase_two = if standard.artificial_cols.is_empty() {
+                tableau
+            } else {
+                let reduced = remove_artificial_columns(tableau, &standard.artificial_cols)?;
+                let (obj, obj_rhs) = phase_two_objective(&reduced, &solved)?;
+                let mut reduced = reduced;
+                reduced.obj = obj;
+                reduced.obj_rhs = obj_rhs;
+                steps.push(Step {
+                    kind: StepKind::Transition,
+                    phase: 2,
+                    tableau: reduced.clone(),
+                    pivot: None,
+                    entering: None,
+                    leaving: None,
+                    ratios: Vec::new(),
+                    row_ops: Vec::new(),
+                    note_plain: vec![
+                        "Pivot out any basic artificial at zero, remove the artificial columns, then replace the phase-one W row with the original objective row.".into(),
+                    ],
+                    note_latex: vec![
+                        "Pivot out any basic artificial at zero, remove the artificial columns, then replace the phase-one $W$ row with the original objective row.".into(),
+                    ],
+                });
+                reduced
+            };
+            if standard.artificial_cols.is_empty() {
+                let (obj, obj_rhs) = phase_two_objective(&phase_two, &solved)?;
+                phase_two.obj = obj;
+                phase_two.obj_rhs = obj_rhs;
+            }
+            let second = iterate(phase_two, &[], 300, phase, None)?;
             total_iterations += second.iterations;
             steps.extend(second.steps);
             ActionResult {
@@ -932,6 +1080,10 @@ pub fn solve_with_method(model: Model, method: Method) -> Result<Solution, Strin
             summary_plain.push("The objective is unbounded: it can be made arbitrarily large (or small) while satisfying the constraints.".into());
             summary_latex.push("The objective is unbounded: it can be made arbitrarily large (or small) while satisfying the constraints.".into());
         }
+        Status::Paused => {
+            summary_plain.push("The solution is paused.".into());
+            summary_latex.push("The solution is paused.".into());
+        }
     }
 
     Ok(Solution {
@@ -955,6 +1107,7 @@ pub struct FinishOptions {
     pub artificial_cols: Vec<usize>,
     pub objective_label: String,
     pub report_sign: i8,
+    pub pivot_limit: Option<usize>,
 }
 
 fn validate_tableau(tab: &Tableau, options: &FinishOptions) -> Result<(), String> {
@@ -1053,7 +1206,7 @@ fn validate_tableau(tab: &Tableau, options: &FinishOptions) -> Result<(), String
 pub fn finish(tab: Tableau, options: FinishOptions) -> Result<Solution, String> {
     validate_tableau(&tab, &options)?;
     let start = tab.clone();
-    let result = iterate(tab, &options.artificial_cols, 300, 0)?;
+    let result = iterate(tab, &options.artificial_cols, 300, 0, options.pivot_limit)?;
     let values = extract_values(&result.tableau, &options.decision_cols)?;
     let optimum = match result.status {
         Status::Optimal => extract_optimum(&result.tableau, options.report_sign)?,
@@ -1125,6 +1278,18 @@ pub fn finish(tab: Tableau, options: FinishOptions) -> Result<Solution, String> 
         Status::Unbounded => {
             summary_plain.push("The objective is unbounded from the supplied tableau.".into());
             summary_latex.push("The objective is unbounded from the supplied tableau.".into());
+        }
+        Status::Paused => {
+            summary_plain.push(format!(
+                "Paused after {} pivot{}. Check this tableau, then continue with the full finish.",
+                result.iterations,
+                if result.iterations == 1 { "" } else { "s" }
+            ));
+            summary_latex.push(format!(
+                "Paused after {} pivot{}. Check this tableau, then continue with the full finish.",
+                result.iterations,
+                if result.iterations == 1 { "" } else { "s" }
+            ));
         }
     }
 
@@ -1443,6 +1608,68 @@ mod tests {
     }
 
     #[test]
+    fn two_stage_removes_artificial_columns_before_phase_two() {
+        let sol = solve_with_method(min_big_m_model(), Method::TwoStage).unwrap();
+        assert_eq!(sol.status, Status::Optimal);
+        assert!(sol
+            .steps
+            .iter()
+            .any(|step| step.kind == StepKind::Transition));
+        for step in sol.steps.iter().filter(|step| step.phase == 2) {
+            assert!(!step
+                .tableau
+                .headers
+                .iter()
+                .any(|header| header.name.starts_with('a')));
+            assert!(step.tableau.obj.iter().all(|value| !value.is_negative()));
+        }
+    }
+
+    #[test]
+    fn pauses_after_a_requested_pivot() {
+        let tab = tableau(
+            &["x", "y", "s1", "s2"],
+            vec![
+                vec![
+                    Rat::ONE.into(),
+                    Rat::ONE.into(),
+                    Rat::ONE.into(),
+                    Rat::ZERO.into(),
+                ],
+                vec![
+                    Rat::ONE.into(),
+                    Rat::int(3).into(),
+                    Rat::ZERO.into(),
+                    Rat::ONE.into(),
+                ],
+            ],
+            vec![Rat::int(4).into(), Rat::int(6).into()],
+            vec![2, 3],
+            vec![
+                Rat::int(-2).into(),
+                Rat::int(-3).into(),
+                Rat::ZERO.into(),
+                Rat::ZERO.into(),
+            ],
+            Rat::ZERO.into(),
+        );
+        let sol = finish(
+            tab,
+            FinishOptions {
+                decision_cols: vec![0, 1],
+                artificial_cols: vec![],
+                objective_label: "Z".into(),
+                report_sign: 1,
+                pivot_limit: Some(1),
+            },
+        )
+        .unwrap();
+        assert_eq!(sol.status, Status::Paused);
+        assert_eq!(sol.iterations, 1);
+        assert_eq!(sol.steps.last().unwrap().kind, StepKind::Paused);
+    }
+
+    #[test]
     fn detects_infeasibility_with_two_stage_simplex() {
         let model = Model {
             sense: Sense::Max,
@@ -1547,6 +1774,7 @@ mod tests {
             artificial_cols: vec![],
             objective_label: "Z".into(),
             report_sign: 1,
+            pivot_limit: None,
         }
     }
 
@@ -1658,6 +1886,7 @@ mod tests {
                 artificial_cols: vec![],
                 objective_label: "C".into(),
                 report_sign: -1,
+                pivot_limit: None,
             },
         )
         .unwrap();
@@ -1688,6 +1917,7 @@ mod tests {
                 artificial_cols: vec![1],
                 objective_label: "Z".into(),
                 report_sign: 1,
+                pivot_limit: None,
             },
         )
         .unwrap();
@@ -1719,6 +1949,7 @@ mod tests {
                 artificial_cols: vec![1],
                 objective_label: "Z".into(),
                 report_sign: 1,
+                pivot_limit: None,
             },
         )
         .unwrap();
@@ -1743,6 +1974,7 @@ mod tests {
                 artificial_cols: vec![],
                 objective_label: "Z".into(),
                 report_sign: 1,
+                pivot_limit: None,
             },
         )
         .unwrap();
@@ -1766,6 +1998,7 @@ mod tests {
                 artificial_cols: vec![],
                 objective_label: "Z".into(),
                 report_sign: 1,
+                pivot_limit: None,
             }
         )
         .unwrap_err()
@@ -1792,6 +2025,7 @@ mod tests {
                 artificial_cols: vec![],
                 objective_label: "Z".into(),
                 report_sign: 1,
+                pivot_limit: None,
             }
         )
         .unwrap_err()

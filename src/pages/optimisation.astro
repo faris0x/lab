@@ -95,9 +95,10 @@ const hintHtmlAr = `مدخلات دقيقة: ${tex('3/4')}، ${tex('0.5')}، ${t
     </p>
     <p class="section-intro">
       Two-stage simplex solves a phase-one problem that minimises the sum of
-      the artificial variables. If that phase reaches zero, its tableau gives a
-      feasible basis for the original objective in phase two. Choose either
-      method from the <strong>Method</strong> menu.
+      the artificial variables. If that phase reaches zero, the transition
+      step pivots out any basic artificial, removes the artificial columns and
+      restores the original objective row. Choose either method from the
+      <strong>Method</strong> menu.
     </p>
   </section>
 
@@ -124,6 +125,11 @@ const hintHtmlAr = `مدخلات دقيقة: ${tex('3/4')}، ${tex('0.5')}، ${t
         The objective row follows the same convention as the solver,
         <code>Z − c'x + M a = 0</code>. Choose <strong>C = −Z</strong> in the
         report selector when the supplied row is a transformed minimisation.
+      </li>
+      <li>
+        Use <strong>One pivot</strong> to stop after a single iteration, then
+        <strong>Use paused tableau</strong> to load that state back into the
+        editor and continue.
       </li>
     </ul>
   </section>

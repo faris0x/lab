@@ -154,11 +154,16 @@ fn parse_tableau(v: &Value) -> Result<(Tableau, FinishOptions), String> {
         obj,
         obj_rhs,
     };
+    let pivot_limit = v
+        .get("maxPivots")
+        .and_then(Value::as_u64)
+        .map(|value| value as usize);
     let options = FinishOptions {
         decision_cols,
         artificial_cols,
         objective_label,
         report_sign,
+        pivot_limit,
     };
     Ok((tableau, options))
 }
@@ -449,6 +454,30 @@ mod tests {
         assert_eq!(value["optimum"]["plain"], "12", "{out}");
         assert_eq!(value["steps"][0]["kind"], "start", "{out}");
         assert!(value["standardForm"].is_null(), "{out}");
+    }
+
+    #[test]
+    fn pauses_a_supplied_tableau_after_one_pivot() {
+        let input = r#"{
+            "mode":"tableau",
+            "headers":["x","y","s1","s2"],
+            "basis":[2,3],
+            "decisionColumns":[0,1],
+            "rows":[["1","1","1","0"],["1","3","0","1"]],
+            "rhs":["4","6"],
+            "obj":["-3","-2","0","0"],
+            "objRhs":"0",
+            "maxPivots":1
+        }"#;
+        let out = super::solve_json(input);
+        let value: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(value["ok"], true, "{out}");
+        assert_eq!(value["status"], "paused", "{out}");
+        assert_eq!(
+            value["steps"].as_array().unwrap().last().unwrap()["kind"],
+            "paused",
+            "{out}"
+        );
     }
 
     #[test]

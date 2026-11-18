@@ -165,6 +165,8 @@ fn kind_str(k: StepKind) -> &'static str {
     match k {
         StepKind::Start => "start",
         StepKind::Iteration => "iteration",
+        StepKind::Transition => "transition",
+        StepKind::Paused => "paused",
         StepKind::Optimal => "optimal",
         StepKind::Unbounded => "unbounded",
         StepKind::Infeasible => "infeasible",
@@ -176,6 +178,7 @@ fn status_str(s: Status) -> &'static str {
         Status::Optimal => "optimal",
         Status::Unbounded => "unbounded",
         Status::Infeasible => "infeasible",
+        Status::Paused => "paused",
     }
 }
 
@@ -287,15 +290,30 @@ fn summary_block(sol: &Solution) -> String {
         }
         Status::Infeasible => "\\text{The tableau is infeasible.}".to_string(),
         Status::Unbounded => "\\text{The objective is unbounded.}".to_string(),
+        Status::Paused => "\\text{Paused; check this tableau before continuing.}".to_string(),
     }
 }
 
-fn step_latex(step: &Step, index: usize) -> String {
+fn row_label(source: &Source, phase: u8) -> String {
+    if phase == 1 {
+        return "W".into();
+    }
+    match source {
+        Source::Model { .. } => "Z".into(),
+        Source::Tableau {
+            objective_label, ..
+        } => objective_label.clone(),
+    }
+}
+
+fn step_latex(step: &Step, index: usize, source: &Source) -> String {
     let mut out = String::new();
     out.push_str(&format!(
         "\\subsection*{{{}}}\n",
         match step.kind {
             StepKind::Start => "Starting tableau".to_string(),
+            StepKind::Transition => "Phase 2 · Remove artificials".to_string(),
+            StepKind::Paused => "Paused tableau".to_string(),
             StepKind::Iteration if step.phase > 0 => {
                 format!("Phase {} · Tableau {}", step.phase, index + 1)
             }
@@ -311,8 +329,8 @@ fn step_latex(step: &Step, index: usize) -> String {
         out.push_str("\n\n");
     }
     out.push_str("\\[\n");
-    let objective_label = if step.phase == 1 { "W" } else { "Z" };
-    out.push_str(&tableau_latex(&step.tableau, step.pivot, objective_label));
+    let objective_label = row_label(source, step.phase);
+    out.push_str(&tableau_latex(&step.tableau, step.pivot, &objective_label));
     out.push_str("\n\\]\n");
     out
 }
@@ -358,7 +376,7 @@ fn document(sol: &Solution) -> String {
     }
 
     for (i, step) in sol.steps.iter().enumerate() {
-        out.push_str(&step_latex(step, i));
+        out.push_str(&step_latex(step, i, &sol.source));
     }
 
     out.push_str("\\section*{Conclusion}\n");
@@ -400,7 +418,7 @@ pub fn render(sol: &Solution) -> Output {
             row_ops: step.row_ops.iter().map(RowOpJson::from).collect(),
             prose: step.note_plain.clone(),
             prose_latex: step.note_latex.clone(),
-            latex: tableau_latex(tab, step.pivot, if step.phase == 1 { "W" } else { "Z" }),
+            latex: tableau_latex(tab, step.pivot, &row_label(&sol.source, step.phase)),
         });
     }
 
@@ -475,7 +493,7 @@ pub fn render(sol: &Solution) -> Output {
         blocks.push(tableau_latex(
             &step.tableau,
             step.pivot,
-            if step.phase == 1 { "W" } else { "Z" },
+            &row_label(&sol.source, step.phase),
         ));
     }
     blocks.push(summary_block(sol));

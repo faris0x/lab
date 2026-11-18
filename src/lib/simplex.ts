@@ -25,7 +25,14 @@ export interface RowOp {
   latex: string;
 }
 
-export type StepKind = 'start' | 'iteration' | 'optimal' | 'unbounded' | 'infeasible';
+export type StepKind =
+  | 'start'
+  | 'iteration'
+  | 'transition'
+  | 'paused'
+  | 'optimal'
+  | 'unbounded'
+  | 'infeasible';
 
 export interface Step {
   kind: StepKind;
@@ -68,7 +75,7 @@ export interface SolveOutput {
   ok: true;
   mode: 'model' | 'tableau';
   method: 'bigm' | 'two-stage' | 'tableau';
-  status: 'optimal' | 'unbounded' | 'infeasible';
+  status: 'optimal' | 'unbounded' | 'infeasible' | 'paused';
   sense: 'max' | 'min';
   transformed: boolean;
   vars: string[];
@@ -114,6 +121,7 @@ export interface FinishTableauInput {
   rhs: string[];
   obj: string[];
   objRhs: string;
+  maxPivots?: number;
 }
 
 async function runSimplex(input: Record<string, unknown>): Promise<SolveOutput> {

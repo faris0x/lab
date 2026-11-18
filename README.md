@@ -52,8 +52,9 @@ WASM_BUILD_STD=1 npm run wasm
 - `rust/crates/mathcore`: exact `i64` rationals and the symbolic `a + bM`
   value, ordered with `M -> infinity`. No floating point, no big integers.
 - `rust/crates/simplex`: model parsing, standard form, simplex with Big-M or
-  two-stage (two-phase) solving, resuming from a supplied partially completed
-  tableau (including `M` terms), tableau trace, LaTeX and prose generation. Compiles to a `cdylib` for
+  two-stage (two-phase) solving with artificial-column removal, resuming from
+  a supplied partially completed tableau (including `M` terms), one-pivot
+  pausing, tableau trace, LaTeX and prose generation. Compiles to a `cdylib` for
   `wasm32-unknown-unknown` and to an `rlib` for native tests.
 - `rust/crates/linalg`: exact RREF, determinant, inverse, nullspace and
   linear systems, with a row-operation trace and LaTeX output.
@@ -138,7 +139,7 @@ cannot drift.
 | CSS | 14.2 KB raw / 4.0 KB gzip |
 | MathLive island JS (largest) | 811 KB raw / 220 KB gzip |
 | KaTeX JS | 259 KB raw / 76 KB gzip |
-| Simplex WASM | 264 KB raw / 78.0 KB gzip |
+| Simplex WASM | 279 KB raw / 80.8 KB gzip |
 | Matrix WASM | 188 KB raw / 61.7 KB gzip |
 | Complex WASM | 200 KB raw / 67.2 KB gzip |
 | Graph WASM | 224 KB raw / 67.4 KB gzip |
@@ -209,14 +210,15 @@ npm run size
 npm run test:e2e
 ```
 
-- Rust: 88 tests covering parsing, exact arithmetic, overflow errors,
+- Rust: 91 tests covering parsing, exact arithmetic, overflow errors,
   maximisation, minimisation, Big-M, equality constraints, negative RHS,
   infeasibility, unboundedness, RREF, determinant, inverse, nullspace,
   linear systems, complex arithmetic, polar form, powers and roots, graph
   shortest paths, spanning trees, weight overflow, Taylor/Maclaurin
   expansion, general-term detection, truth tables, Boolean minimisation,
   base conversion, normalisation, IEEE 754, resuming partial tableaus, and
-  both Big-M and two-stage simplex.
+  both Big-M and two-stage simplex, artificial-column removal, and paused
+  one-pivot finishes.
 - Vitest: 16 unit tests for the LaTeX-to-canonical parser and LaTeX helpers.
 - Playwright: all routes return `200` without console errors, every generated
   WASM module is served, the default simplex problem solves, a Maclaurin

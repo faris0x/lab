@@ -78,6 +78,15 @@ test('finishes a partially completed tableau', async ({ page }) => {
   await expect(page.locator('.tableau-grid')).toBeVisible();
 });
 
+test('pauses the tableau finisher after one pivot', async ({ page }) => {
+  await page.goto('/optimisation');
+  await page.getByRole('tab', { name: 'Finish tableau' }).click();
+  await page.getByRole('button', { name: 'One pivot left', exact: true }).click();
+  await page.getByRole('button', { name: 'One pivot', exact: true }).click();
+  await expect(page.locator('.status')).toHaveText('Paused');
+  await expect(page.getByRole('button', { name: 'Use paused tableau', exact: true })).toBeVisible();
+});
+
 test('adds a new decision variable in the tableau finisher', async ({ page }) => {
   await page.goto('/optimisation');
   await page.getByRole('tab', { name: 'Finish tableau' }).click();
