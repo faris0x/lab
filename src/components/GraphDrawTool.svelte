@@ -4,6 +4,7 @@
     CANVAS_WIDTH,
     DEFAULT_EDGE_FONT,
     DEFAULT_NODE_FONT,
+    EXPORT_THEME,
     NODE_RADIUS,
     PALETTE,
     buildSvg,
@@ -52,7 +53,7 @@
   let hovered = $state<Selection>(null);
   let edgeSource = $state<string | null>(null);
   let highlightNeighbours = $state(false);
-  let showGrid = $state(true);
+  let showGrid = $state(false);
   let error = $state('');
   let notice = $state('');
   let past = $state<DrawGraph[]>([]);
@@ -74,6 +75,52 @@
     | null = null;
   let sequence = 1;
   let noticeTimer: number | undefined;
+  let exportFontCss = $state('');
+  let fontPromise: Promise<string> | null = null;
+
+  async function fontBase64(path: string): Promise<string> {
+    const base = import.meta.env.BASE_URL || '/';
+    const response = await fetch(`${base}${path}`);
+    if (!response.ok) return '';
+    const buffer = await response.arrayBuffer();
+    let binary = '';
+    for (const byte of new Uint8Array(buffer)) {
+      binary += String.fromCharCode(byte);
+    }
+    return btoa(binary);
+  }
+
+  async function ensureExportFont(): Promise<string> {
+    if (exportFontCss) return exportFontCss;
+    if (!fontPromise) {
+      fontPromise = (async () => {
+        const [regular, bold, italic] = await Promise.all([
+          fontBase64('katex/fonts/KaTeX_Main-Regular.woff2'),
+          fontBase64('katex/fonts/KaTeX_Main-Bold.woff2'),
+          fontBase64('katex/fonts/KaTeX_Main-Italic.woff2')
+        ]);
+        const faces: string[] = [];
+        if (regular) {
+          faces.push(
+            `@font-face{font-family:'Lab Paper';src:url(data:font/woff2;base64,${regular}) format('woff2');font-weight:400;font-style:normal;}`
+          );
+        }
+        if (bold) {
+          faces.push(
+            `@font-face{font-family:'Lab Paper';src:url(data:font/woff2;base64,${bold}) format('woff2');font-weight:700;font-style:normal;}`
+          );
+        }
+        if (italic) {
+          faces.push(
+            `@font-face{font-family:'Lab Paper';src:url(data:font/woff2;base64,${italic}) format('woff2');font-weight:400;font-style:italic;}`
+          );
+        }
+        exportFontCss = faces.join('');
+        return exportFontCss;
+      })().catch(() => '');
+    }
+    return fontPromise;
+  }
 
   const selectedNode = $derived.by(() => {
     if (!selected || selected.kind !== 'node') return null;
@@ -502,7 +549,8 @@
 
   async function exportPng() {
     try {
-      const blob = await svgToPngBlob(buildSvg(graph), 2);
+      const font = await ensureExportFont();
+      const blob = await svgToPngBlob(buildSvg(graph, EXPORT_THEME, font), 2);
       downloadBlob(`${fileBase()}.png`, blob);
       flash('PNG downloaded.');
     } catch (e) {
@@ -526,8 +574,13 @@
     );
   }
 
-  function exportSvg() {
-    downloadText(`${fileBase()}.svg`, buildSvg(graph), 'image/svg+xml');
+  async function exportSvg() {
+    const font = await ensureExportFont();
+    downloadText(
+      `${fileBase()}.svg`,
+      buildSvg(graph, EXPORT_THEME, font),
+      'image/svg+xml'
+    );
     flash('SVG downloaded.');
   }
 
@@ -563,7 +616,8 @@
 
   async function copySvg() {
     try {
-      await navigator.clipboard.writeText(buildSvg(graph));
+      const font = await ensureExportFont();
+      await navigator.clipboard.writeText(buildSvg(graph, EXPORT_THEME, font));
       flash('SVG copied.');
     } catch {
       error = 'Could not copy the SVG in this browser.';
@@ -680,7 +734,7 @@
       >
         <defs>
           <pattern id="draw-grid" width="32" height="32" patternUnits="userSpaceOnUse">
-            <path d="M32 0H0V32" fill="none" stroke="var(--line-soft)" stroke-width="0.7" />
+            <path d="M32 0H0V32" fill="none" stroke="var(--paper-grid)" stroke-width="0.7" />
           </pattern>
         </defs>
         <rect class="canvas-bg" width={CANVAS_WIDTH} height={CANVAS_HEIGHT} />
@@ -725,7 +779,7 @@
                 x2={geometry.line1EndX}
                 y2={geometry.line1EndY}
                 stroke={selected?.kind === 'edge' && selected.id === edge.id
-                  ? 'var(--accent)'
+                  ? 'var(--paper-select)'
                   : edge.color || undefined}
               />
               <line
@@ -735,7 +789,7 @@
                 x2={geometry.endX}
                 y2={geometry.endY}
                 stroke={selected?.kind === 'edge' && selected.id === edge.id
-                  ? 'var(--accent)'
+                  ? 'var(--paper-select)'
                   : edge.color || undefined}
               />
               {#if edge.directed}
@@ -743,8 +797,8 @@
                   class="edge-arrow"
                   points={geometry.arrow}
                   fill={selected?.kind === 'edge' && selected.id === edge.id
-                    ? 'var(--accent)'
-                    : edge.color || 'var(--fg-faint)'}
+                    ? 'var(--paper-select)'
+                    : edge.color || 'var(--paper-edge)'}
                 />
               {/if}
               {#if weightText}
@@ -790,9 +844,9 @@
               r={NODE_RADIUS}
               fill={node.color || undefined}
               stroke={selected?.kind === 'node' && selected.id === node.id
-                ? '#f4ead1'
+                ? 'var(--paper-select)'
                 : node.color
-                  ? '#f4ead1'
+                  ? 'var(--paper-ink)'
                   : undefined}
             />
             <text
@@ -800,6 +854,7 @@
               x={node.x}
               y={node.y}
               style={`font-size:${graph.nodeFontSize}px`}
+              fill={node.color ? '#111111' : undefined}
               text-anchor="middle"
               dominant-baseline="middle"
               >{node.label}</text
@@ -943,6 +998,7 @@
 
       <div class="draw-export">
         <p class="draw-subhead">Export</p>
+        <p class="draw-export-note">Exports use LaTeX-style black ink on white paper.</p>
         <div class="btn-row">
           <button class="btn btn-ghost btn-small" type="button" onclick={exportSvg}>SVG</button>
           <button class="btn btn-ghost btn-small" type="button" onclick={exportPng}>PNG</button>
@@ -992,7 +1048,7 @@
     border: 1px solid var(--line);
     border-radius: var(--radius);
     overflow: hidden;
-    background: var(--bg-card);
+    background: var(--paper-bg);
   }
 
   .draw-canvas svg {
@@ -1017,7 +1073,7 @@
   }
 
   .canvas-bg {
-    fill: var(--bg-card);
+    fill: var(--paper-bg);
   }
 
   .draw-node {
@@ -1029,32 +1085,32 @@
   }
 
   .node-shape {
-    fill: var(--bg-card);
-    stroke: var(--accent);
-    stroke-width: 2;
+    fill: var(--paper-node-fill);
+    stroke: var(--paper-node-stroke);
+    stroke-width: 1.6;
   }
 
   .node-label {
-    fill: var(--fg);
+    fill: var(--paper-ink);
     stroke: none;
-    font-family: var(--sans);
-    font-size: 15px;
-    font-weight: 700;
+    font-family: var(--paper-font);
+    font-style: italic;
+    font-weight: 400;
     pointer-events: none;
   }
 
   .draw-node.is-selected .node-shape {
-    stroke: #ffffff !important;
-    stroke-width: 3;
+    stroke: var(--paper-select) !important;
+    stroke-width: 2.6;
   }
 
   .draw-node.is-hovered .node-shape {
-    filter: drop-shadow(0 0 6px var(--accent));
+    stroke-width: 2.4;
   }
 
   .draw-node.is-source .node-shape {
-    stroke: var(--warn);
-    stroke-width: 4;
+    stroke: var(--paper-select);
+    stroke-width: 3;
   }
 
   .draw-node.is-dimmed,
@@ -1070,20 +1126,20 @@
   }
 
   .edge-line {
-    stroke: var(--fg-faint);
-    stroke-width: 2.4;
+    stroke: var(--paper-edge);
+    stroke-width: 1.6;
     stroke-linecap: round;
     pointer-events: none;
   }
 
   .draw-edge.is-selected .edge-line {
-    stroke: var(--accent) !important;
-    stroke-width: 3.5;
+    stroke: var(--paper-select) !important;
+    stroke-width: 2.4;
+    stroke-dasharray: 5 3;
   }
 
   .draw-edge.is-hovered .edge-line {
-    stroke: var(--fg);
-    filter: drop-shadow(0 0 4px var(--accent));
+    stroke-width: 2.4;
   }
 
   .edge-arrow {
@@ -1091,17 +1147,18 @@
   }
 
   .edge-weight {
-    fill: var(--fg);
+    fill: var(--paper-ink);
     stroke: none;
-    font-weight: 600;
+    font-family: var(--paper-font);
+    font-weight: 400;
     pointer-events: all;
     cursor: move;
     user-select: none;
   }
 
   .empty-canvas {
-    fill: var(--fg-faint);
-    font-family: var(--sans);
+    fill: var(--paper-muted);
+    font-family: var(--paper-font);
     font-size: 16px;
   }
 
@@ -1205,6 +1262,13 @@
     padding-top: 0.7rem;
     display: grid;
     gap: 0.45rem;
+  }
+
+  .draw-export-note {
+    margin: 0;
+    color: var(--fg-faint);
+    font-size: 0.76rem;
+    line-height: 1.4;
   }
 
   .file-label {

@@ -11,6 +11,30 @@
     U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+@font-face {
+  font-family: 'Lab Paper';
+  src: url('/katex/fonts/KaTeX_Main-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Lab Paper';
+  src: url('/katex/fonts/KaTeX_Main-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Lab Paper';
+  src: url('/katex/fonts/KaTeX_Main-Italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
 :root {
   --bg: #000000;
   --bg-soft: #070709;
@@ -36,6 +60,17 @@
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
   --shadow: 0 1px 0 rgba(255, 255, 255, 0.02);
   --code-bg: #000000;
+
+  --paper-bg: #111114;
+  --paper-ink: #f4ead1;
+  --paper-muted: #bdb6a8;
+  --paper-grid: #292930;
+  --paper-node-fill: #17171c;
+  --paper-node-stroke: #f4ead1;
+  --paper-edge: #f4ead1;
+  --paper-select: #f0b72f;
+  --paper-font: 'Lab Paper', 'Latin Modern Roman', 'CMU Serif',
+    'Times New Roman', serif;
 }
 
 html[data-theme='light'] {
@@ -55,4 +90,15 @@ html[data-theme='light'] {
   --ok: #2f6f3e;
   --warn: #8a5a00;
   --code-bg: #efe3c6;
+
+  --paper-bg: #ffffff;
+  --paper-ink: #111111;
+  --paper-muted: #555555;
+  --paper-grid: #e8e8e8;
+  --paper-node-fill: #ffffff;
+  --paper-node-stroke: #111111;
+  --paper-edge: #111111;
+  --paper-select: #b42318;
+  --paper-font: 'Lab Paper', 'Latin Modern Roman', 'CMU Serif',
+    'Times New Roman', serif;
 }

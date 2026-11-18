@@ -155,6 +155,15 @@ test('typing ln(1-3x) into the field works', async ({ page }) => {
   await expect(page.locator('.status')).toHaveText('Maclaurin series');
 });
 
+test('graph drawer paper follows the theme', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/draw');
+  const paper = page.locator('.canvas-bg');
+  await expect(paper).toHaveCSS('fill', 'rgb(17, 17, 20)');
+  await page.locator('#theme-toggle').click();
+  await expect(paper).toHaveCSS('fill', 'rgb(255, 255, 255)');
+});
+
 test('adds a directed edge in the graph drawer', async ({ page }) => {
   await page.goto('/draw');
   await page.getByRole('button', { name: 'Add directed edge', exact: true }).click();

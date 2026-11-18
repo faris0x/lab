@@ -13,9 +13,9 @@ import GraphDrawTool from '../components/GraphDrawTool.svelte';
       <h1>Graph drawer</h1>
     </div>
     <p>
-      Draw a graph directly on the canvas. Move vertices, label them, add
-      weighted or unweighted edges, and colour the parts you want to discuss.
-      Export the drawing as SVG, TikZ or JSON.
+      Draw a graph directly on a LaTeX-style paper canvas. Move vertices, label
+      them, add weighted or unweighted edges, and colour the parts you want to
+      discuss. Export a black-on-white SVG, PNG or TikZ figure for your notes.
     </p>
   </div>
 
@@ -48,15 +48,21 @@ import GraphDrawTool from '../components/GraphDrawTool.svelte';
       selected item and the vertices and edges immediately around it. The
       vertex and edge-weight font sizes are adjustable from the inspector.
     </p>
+    <p class="section-intro">
+      The canvas uses a Computer Modern-style LaTeX font on paper. In light mode
+      it is white paper with black ink; in dark mode the paper and ink are
+      inverted. Exports are always black on white, ready for a LaTeX document.
+    </p>
   </section>
 
   <section class="section" aria-labelledby="export">
     <h2 id="export">Export</h2>
     <p class="section-intro">
-      Download a standalone <code>.svg</code> or <code>.png</code> for notes, a
-      TikZ picture for a LaTeX document, or a <code>.json</code> file that can
-      be imported later. The positions, labels, weights, colours, font sizes
-      and edge directions are preserved.
+      Download a standalone black-on-white <code>.svg</code> or
+      <code>.png</code> for notes, a TikZ picture for a LaTeX document, or a
+      <code>.json</code> file that can be imported later. The SVG/PNG embed the
+      LaTeX font; TikZ uses inline <code>fill=white</code> labels to crop the
+      edges around the weights. Editor highlight colours are not exported.
     </p>
   </section>
 </BaseLayout>

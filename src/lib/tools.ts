@@ -74,7 +74,7 @@ export const tools: ToolMeta[] = [
     title: 'Graph drawer',
     tag: 'Live · Visualisation',
     description:
-      'Draw labelled weighted or unweighted graphs with directed or undirected edges, drag weights, adjust font sizes, highlight neighbourhoods, and export SVG, PNG, TikZ or JSON.'
+      'Draw labelled weighted or unweighted graphs on a LaTeX-style paper canvas with directed or undirected edges, inline weights, adjustable font sizes, and black-on-white SVG, PNG, TikZ or JSON export.'
   },
   {
     key: 'float',

@@ -40,10 +40,21 @@ export const PALETTE: { key: string; label: string; value: string; dark: string 
   { key: 'blue', label: 'Blue', value: '#79c0ff', dark: '#183d63' }
 ];
 
-const DEFAULT_NODE = '#0a0a0d';
-const DEFAULT_STROKE = '#b8a6f8';
-const DEFAULT_EDGE = '#7c8291';
-const DEFAULT_TEXT = '#e4e6ec';
+export interface RenderTheme {
+  background: string;
+  ink: string;
+  nodeFill: string;
+  nodeStroke: string;
+  edge: string;
+}
+
+export const EXPORT_THEME: RenderTheme = {
+  background: '#ffffff',
+  ink: '#000000',
+  nodeFill: '#ffffff',
+  nodeStroke: '#000000',
+  edge: '#000000'
+};
 
 export function cloneGraph(graph: DrawGraph): DrawGraph {
   return {
@@ -151,7 +162,11 @@ function escapeTex(value: string): string {
   });
 }
 
-export function buildSvg(graph: DrawGraph): string {
+export function buildSvg(
+  graph: DrawGraph,
+  theme: RenderTheme = EXPORT_THEME,
+  fontCss = ''
+): string {
   const byId = new Map(graph.nodes.map((node) => [node.id, node]));
   const edgeMarkup = graph.edges
     .map((edge) => {
@@ -163,45 +178,56 @@ export function buildSvg(graph: DrawGraph): string {
         ? weightLabelWidth(weightText, graph.edgeFontSize)
         : 0;
       const geometry = edgeGeometry(from, to, edge, labelWidth);
-      const color = edge.color || DEFAULT_EDGE;
       const weight = weightText
-        ? `<text x="${geometry.labelX.toFixed(2)}" y="${geometry.labelY.toFixed(2)}" fill="${DEFAULT_TEXT}" font-size="${graph.edgeFontSize}" font-weight="600" text-anchor="middle" dominant-baseline="middle">${escapeXml(weightText)}</text>`
+        ? `<text x="${geometry.labelX.toFixed(2)}" y="${geometry.labelY.toFixed(2)}" fill="${theme.ink}" font-size="${graph.edgeFontSize}" font-weight="400" text-anchor="middle" dominant-baseline="middle">${escapeXml(weightText)}</text>`
         : '';
       const arrow = geometry.arrow
-        ? `<polygon points="${geometry.arrow}" fill="${color}"/>`
+        ? `<polygon points="${geometry.arrow}" fill="${theme.ink}"/>`
         : '';
-      return `<g><line x1="${geometry.startX.toFixed(2)}" y1="${geometry.startY.toFixed(2)}" x2="${geometry.line1EndX.toFixed(2)}" y2="${geometry.line1EndY.toFixed(2)}" stroke="${color}" stroke-width="2.4" stroke-linecap="round"/><line x1="${geometry.line2StartX.toFixed(2)}" y1="${geometry.line2StartY.toFixed(2)}" x2="${geometry.endX.toFixed(2)}" y2="${geometry.endY.toFixed(2)}" stroke="${color}" stroke-width="2.4" stroke-linecap="round"/>${arrow}${weight}</g>`;
+      return `<g><line x1="${geometry.startX.toFixed(2)}" y1="${geometry.startY.toFixed(2)}" x2="${geometry.line1EndX.toFixed(2)}" y2="${geometry.line1EndY.toFixed(2)}" stroke="${theme.edge}" stroke-width="1.6" stroke-linecap="round"/><line x1="${geometry.line2StartX.toFixed(2)}" y1="${geometry.line2StartY.toFixed(2)}" x2="${geometry.endX.toFixed(2)}" y2="${geometry.endY.toFixed(2)}" stroke="${theme.edge}" stroke-width="1.6" stroke-linecap="round"/>${arrow}${weight}</g>`;
     })
     .join('\n');
 
   const nodeMarkup = graph.nodes
     .map((node) => {
-      const fill = node.color || DEFAULT_NODE;
-      const stroke = node.color ? '#f4ead1' : DEFAULT_STROKE;
-      const text = node.color ? '#0a0a0d' : DEFAULT_TEXT;
-      return `<g><circle cx="${node.x.toFixed(2)}" cy="${node.y.toFixed(2)}" r="${NODE_RADIUS}" fill="${fill}" stroke="${stroke}" stroke-width="2"/><text x="${node.x.toFixed(2)}" y="${node.y.toFixed(2)}" fill="${text}" font-size="${graph.nodeFontSize}" font-weight="700" text-anchor="middle" dominant-baseline="middle">${escapeXml(node.label)}</text></g>`;
+      return `<g><circle cx="${node.x.toFixed(2)}" cy="${node.y.toFixed(2)}" r="${NODE_RADIUS}" fill="${theme.nodeFill}" stroke="${theme.nodeStroke}" stroke-width="1.6"/><text x="${node.x.toFixed(2)}" y="${node.y.toFixed(2)}" fill="${theme.ink}" font-size="${graph.nodeFontSize}" font-weight="400" font-style="italic" text-anchor="middle" dominant-baseline="middle">${escapeXml(node.label)}</text></g>`;
     })
     .join('\n');
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}" viewBox="0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}">
-<rect width="100%" height="100%" fill="${DEFAULT_NODE}"/>
-<text x="${CANVAS_WIDTH / 2}" y="30" fill="${DEFAULT_TEXT}" font-size="18" font-weight="700" text-anchor="middle">${escapeXml(graph.title)}</text>
-<g font-family="Hubot Sans, Arial, sans-serif">
+  const fontStyle = fontCss
+    ? `<defs><style type="text/css"><![CDATA[${fontCss}]]></style></defs>`
+    : '';
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}" viewBox="0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}">
+${fontStyle}
+<rect width="100%" height="100%" fill="${theme.background}"/>
+<g font-family="Lab Paper, 'Latin Modern Roman', 'CMU Serif', 'Times New Roman', serif">
+<text x="${CANVAS_WIDTH / 2}" y="30" fill="${theme.ink}" font-size="18" font-weight="700" text-anchor="middle">${escapeXml(graph.title)}</text>
 ${edgeMarkup}
 ${nodeMarkup}
 </g>
 </svg>`;
 }
 
+function tikzValue(value: string): string {
+  const trimmed = value.trim();
+  if (/^[A-Za-z0-9+\-./*=() ]+$/.test(trimmed)) return `$${trimmed}$`;
+  return escapeTex(trimmed);
+}
+
 export function buildTikz(graph: DrawGraph): string {
   const index = new Map(graph.nodes.map((node, position) => [node.id, position]));
+  const nodeFont = Math.max(8, Math.round(graph.nodeFontSize * 0.75));
+  const edgeFont = Math.max(7, Math.round(graph.edgeFontSize * 0.75));
   const lines = [
     '% Generated by lab.faris0x.dev graph drawer',
-    '\\begin{tikzpicture}[scale=0.018, every node/.style={circle,draw,minimum size=22pt,inner sep=0pt}]'
+    '% Requires \\usepackage{tikz}',
+    `\\begin{tikzpicture}[>=stealth,line width=0.5pt,every node/.style={circle,draw,inner sep=1.5pt,minimum size=22pt,font=\\fontsize{${nodeFont}}{${nodeFont + 2}}\\selectfont}]`
   ];
   for (const node of graph.nodes) {
     lines.push(
-      `  \\node (n${index.get(node.id)}) at (${node.x.toFixed(1)},${(-node.y).toFixed(1)}) {${escapeTex(node.label)}};`
+      `  \\node (n${index.get(node.id)}) at (${node.x.toFixed(1)},${(-node.y).toFixed(1)}) {${tikzValue(node.label)}};`
     );
   }
   for (const edge of graph.edges) {
@@ -209,10 +235,15 @@ export function buildTikz(graph: DrawGraph): string {
     const v = index.get(edge.v);
     if (u === undefined || v === undefined) continue;
     const arrow = edge.directed ? '[->]' : '';
-    const direction = (edge.weightOffset ?? 0) < 0 ? 'below' : 'above';
+    const direction =
+      (edge.weightOffset ?? 0) < 0
+        ? ',below'
+        : (edge.weightOffset ?? 0) > 0
+          ? ',above'
+          : '';
     const label =
       graph.weighted && edge.weight.trim()
-        ? ` node[pos=${(edge.weightT ?? 0.5).toFixed(2)},${direction},draw=none] {${escapeTex(edge.weight)}}`
+        ? ` node[pos=${Math.max(0.05, Math.min(0.95, edge.weightT ?? 0.5)).toFixed(2)},fill=white,inner sep=1.5pt${direction},font=\\fontsize{${edgeFont}}{${edgeFont + 2}}\\selectfont] {${tikzValue(edge.weight)}}`
         : '';
     lines.push(`  \\draw${arrow} (n${u}) --${label} (n${v});`);
   }
