@@ -159,7 +159,7 @@ test('adds a directed edge in the graph drawer', async ({ page }) => {
   await page.goto('/draw');
   await page.getByRole('button', { name: 'Add directed edge', exact: true }).click();
   await page.getByRole('button', { name: 'Vertex A', exact: true }).click();
-  await page.getByRole('button', { name: 'Vertex B', exact: true }).click();
+  await page.getByRole('button', { name: 'Vertex C', exact: true }).click();
   await expect(page.locator('.edge-arrow')).toHaveCount(1);
 });
 
