@@ -158,13 +158,16 @@ test('typing ln(1-3x) into the field works', async ({ page }) => {
 test('draws a vertex and toggles weighting', async ({ page }) => {
   await page.goto('/draw');
   await expect(page.locator('.draw-node')).toHaveCount(5);
-  await page.getByRole('button', { name: 'Add vertex', exact: true }).click();
+  const addVertex = page.getByRole('button', { name: 'Add vertex', exact: true });
+  await addVertex.click();
+  await expect(addVertex).toHaveAttribute('aria-pressed', 'true');
   const canvas = page.locator('.draw-canvas svg');
+  await canvas.scrollIntoViewIfNeeded();
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
-  await page.mouse.click(box!.x + box!.width * 0.82, box!.y + box!.height * 0.8);
+  await canvas.click({ position: { x: box!.width / 2, y: box!.height / 2 } });
   await expect(page.locator('.draw-node')).toHaveCount(6);
-  await page.getByText('Weighted', { exact: true }).click();
+  await page.getByRole('checkbox', { name: 'Weighted' }).uncheck();
   await expect(page.locator('.edge-weight')).toHaveCount(0);
 });
 
