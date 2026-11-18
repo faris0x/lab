@@ -5,9 +5,10 @@
 The live tools are **Simplex & Big-M** at `/optimisation`, the **Matrix
 toolkit** at `/matrix`, **Complex numbers** at `/complex`, **Taylor &
 Maclaurin series** at `/series`, **Truth tables** at `/logic`, **Graphs &
-networks** at `/graphs`, the **Floating point toolkit** at `/floating-point`,
-and **Boolean algebra** at `/boolean`. Tool routes stay at the top level: new
-tools go at `/<topic>`, not nested under a second category.
+networks** at `/graphs`, the **Graph drawer** at `/draw`, the **Floating point
+toolkit** at `/floating-point`, and **Boolean algebra** at `/boolean`. Tool
+routes stay at the top level: new tools go at `/<topic>`, not nested under a
+second category.
 The Argand axes use `d3-scale` for rounded ticks and consistent equal-aspect
 scaling.
 
@@ -72,6 +73,10 @@ WASM_BUILD_STD=1 npm run wasm
 - `rust/crates/boolean`: truth tables, canonical SOP/POS, prime implicants and a
   minimal sum of products, built on the `logic` crate.
 - `src/`: Astro static pages with one Svelte island per tool.
+- `src/components/GraphDrawTool.svelte`, `src/lib/graph-draw.ts`: an SVG graph
+  editor with draggable labelled vertices, weighted or unweighted edges,
+  directed arrows, colour highlighting, undo/redo, tidy layout, JSON
+  import/export, and standalone SVG/TikZ export.
 - `src/components/MathField.svelte`: WYSIWYG maths input built on MathLive.
   The custom keypad inserts LaTeX at the caret; every key label is rendered
   with KaTeX.

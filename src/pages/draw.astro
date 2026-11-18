@@ -1,0 +1,56 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import GraphDrawTool from '../components/GraphDrawTool.svelte';
+---
+
+<BaseLayout
+  title="Graph drawer | lab by faris0x"
+  description="Draw labelled weighted or unweighted graphs, drag vertices, add edges, highlight parts of the graph, and export SVG, TikZ or JSON."
+  current="draw"
+>
+  <div class="tool-head">
+    <div>
+      <h1>Graph drawer</h1>
+    </div>
+    <p>
+      Draw a graph directly on the canvas. Move vertices, label them, add
+      weighted or unweighted edges, and colour the parts you want to discuss.
+      Export the drawing as SVG, TikZ or JSON.
+    </p>
+  </div>
+
+  <GraphDrawTool client:idle />
+
+  <section class="section" aria-labelledby="drawing">
+    <h2 id="drawing">Drawing</h2>
+    <ul class="plain-list section-intro">
+      <li><strong>Select / move</strong> selects a vertex or edge; drag a vertex to move it.</li>
+      <li><strong>Add vertex</strong> places a new labelled vertex where you click.</li>
+      <li><strong>Add edge</strong> joins two vertices; click the source and then the target.</li>
+      <li><strong>Delete</strong> removes a vertex or edge. Deleting a vertex also removes its edges.</li>
+    </ul>
+    <p class="section-intro">
+      The editor supports undirected and directed graphs. Turn weighting off
+      for a plain graph; the stored weights are kept if you switch it back on.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="highlighting">
+    <h2 id="highlighting">Labels and highlighting</h2>
+    <p class="section-intro">
+      Select a vertex to edit its label or give it a colour. Select an edge to
+      edit its weight, reverse it in a directed graph, or colour it. The
+      <strong>Highlight neighbours</strong> toggle fades everything except the
+      selected item and the vertices and edges immediately around it.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="export">
+    <h2 id="export">Export</h2>
+    <p class="section-intro">
+      Download a standalone <code>.svg</code> for notes, a TikZ picture for a
+      LaTeX document, or a <code>.json</code> file that can be imported later.
+      The positions, labels, weights, colours and direction are preserved.
+    </p>
+  </section>
+</BaseLayout>

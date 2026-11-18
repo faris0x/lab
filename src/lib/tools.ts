@@ -68,6 +68,15 @@ export const tools: ToolMeta[] = [
       'Edit a weighted graph and run Dijkstra, Floyd–Warshall, Kruskal or Prim. Distance updates, accepted edges and rejected cycles are recorded step by step.'
   },
   {
+    key: 'draw',
+    href: '/draw',
+    nav: 'Draw',
+    title: 'Graph drawer',
+    tag: 'Live · Visualisation',
+    description:
+      'Draw labelled weighted or unweighted graphs, move and colour vertices and edges, highlight neighbourhoods, and export SVG, TikZ or JSON.'
+  },
+  {
     key: 'float',
     href: '/floating-point',
     nav: 'Float',
