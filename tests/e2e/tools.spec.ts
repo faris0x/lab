@@ -155,6 +155,14 @@ test('typing ln(1-3x) into the field works', async ({ page }) => {
   await expect(page.locator('.status')).toHaveText('Maclaurin series');
 });
 
+test('adds a directed edge in the graph drawer', async ({ page }) => {
+  await page.goto('/draw');
+  await page.getByRole('button', { name: 'Add directed edge', exact: true }).click();
+  await page.getByRole('button', { name: 'Vertex A', exact: true }).click();
+  await page.getByRole('button', { name: 'Vertex B', exact: true }).click();
+  await expect(page.locator('.edge-arrow')).toHaveCount(1);
+});
+
 test('draws a vertex and toggles weighting', async ({ page }) => {
   await page.goto('/draw');
   await expect(page.locator('.draw-node')).toHaveCount(5);

@@ -12,19 +12,25 @@ export interface DrawEdge {
   v: string;
   weight: string;
   color: string;
+  directed: boolean;
+  weightT: number;
+  weightOffset: number;
 }
 
 export interface DrawGraph {
   title: string;
   nodes: DrawNode[];
   edges: DrawEdge[];
-  directed: boolean;
   weighted: boolean;
+  edgeFontSize: number;
+  nodeFontSize: number;
 }
 
 export const CANVAS_WIDTH = 760;
 export const CANVAS_HEIGHT = 520;
 export const NODE_RADIUS = 22;
+export const DEFAULT_EDGE_FONT = 14;
+export const DEFAULT_NODE_FONT = 16;
 
 export const PALETTE: { key: string; label: string; value: string; dark: string }[] = [
   { key: 'accent', label: 'Iris', value: '#b8a6f8', dark: '#3b2f63' },
@@ -42,18 +48,29 @@ const DEFAULT_TEXT = '#e4e6ec';
 export function cloneGraph(graph: DrawGraph): DrawGraph {
   return {
     title: graph.title,
-    directed: graph.directed,
     weighted: graph.weighted,
+    edgeFontSize: graph.edgeFontSize,
+    nodeFontSize: graph.nodeFontSize,
     nodes: graph.nodes.map((node) => ({ ...node })),
     edges: graph.edges.map((edge) => ({ ...edge }))
   };
 }
 
+export function weightLabelWidth(text: string, fontSize: number): number {
+  const trimmed = text.trim();
+  if (!trimmed) return 0;
+  return Math.max(10, trimmed.length * fontSize * 0.62 + 8);
+}
+
 export interface EdgeGeometry {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  line1EndX: number;
+  line1EndY: number;
+  line2StartX: number;
+  line2StartY: number;
   labelX: number;
   labelY: number;
   arrow: string;
@@ -62,7 +79,8 @@ export interface EdgeGeometry {
 export function edgeGeometry(
   from: DrawNode,
   to: DrawNode,
-  directed: boolean
+  edge: DrawEdge,
+  labelWidth: number
 ): EdgeGeometry {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
@@ -73,20 +91,38 @@ export function edgeGeometry(
   const startY = from.y + uy * (NODE_RADIUS + 2);
   const endX = to.x - ux * (NODE_RADIUS + 2);
   const endY = to.y - uy * (NODE_RADIUS + 2);
-  const midX = (startX + endX) / 2;
-  const midY = (startY + endY) / 2;
+  const lineLength = Math.hypot(endX - startX, endY - startY) || 1;
   const perpX = -uy;
   const perpY = ux;
-  const labelX = midX + perpX * 12;
-  const labelY = midY + perpY * 12;
-  const arrow = directed
+  const t = Math.max(0.05, Math.min(0.95, edge.weightT ?? 0.5));
+  const along = lineLength * t;
+  const labelX = startX + ux * along + perpX * (edge.weightOffset ?? 0);
+  const labelY = startY + uy * along + perpY * (edge.weightOffset ?? 0);
+  const halfGap = labelWidth
+    ? Math.min(labelWidth / 2 + 4, lineLength / 2 - 1)
+    : 0;
+  const gapStart = Math.max(0, Math.min(lineLength, along - halfGap));
+  const gapEnd = Math.max(0, Math.min(lineLength, along + halfGap));
+  const arrow = edge.directed
     ? [
         `${endX},${endY}`,
         `${endX - ux * 13 + perpX * 5},${endY - uy * 13 + perpY * 5}`,
         `${endX - ux * 13 - perpX * 5},${endY - uy * 13 - perpY * 5}`
       ].join(' ')
     : '';
-  return { x1: startX, y1: startY, x2: endX, y2: endY, labelX, labelY, arrow };
+  return {
+    startX,
+    startY,
+    endX,
+    endY,
+    line1EndX: startX + ux * gapStart,
+    line1EndY: startY + uy * gapStart,
+    line2StartX: startX + ux * gapEnd,
+    line2StartY: startY + uy * gapEnd,
+    labelX,
+    labelY,
+    arrow
+  };
 }
 
 function escapeXml(value: string): string {
@@ -122,16 +158,19 @@ export function buildSvg(graph: DrawGraph): string {
       const from = byId.get(edge.u);
       const to = byId.get(edge.v);
       if (!from || !to) return '';
-      const geometry = edgeGeometry(from, to, graph.directed);
+      const weightText = graph.weighted && edge.weight.trim() ? edge.weight : '';
+      const labelWidth = weightText
+        ? weightLabelWidth(weightText, graph.edgeFontSize)
+        : 0;
+      const geometry = edgeGeometry(from, to, edge, labelWidth);
       const color = edge.color || DEFAULT_EDGE;
-      const weight =
-        graph.weighted && edge.weight.trim()
-          ? `<text x="${geometry.labelX.toFixed(2)}" y="${geometry.labelY.toFixed(2)}" fill="${DEFAULT_TEXT}" stroke="${DEFAULT_NODE}" stroke-width="4" paint-order="stroke" font-size="13" font-weight="600" text-anchor="middle" dominant-baseline="middle">${escapeXml(edge.weight)}</text>`
-          : '';
+      const weight = weightText
+        ? `<text x="${geometry.labelX.toFixed(2)}" y="${geometry.labelY.toFixed(2)}" fill="${DEFAULT_TEXT}" font-size="${graph.edgeFontSize}" font-weight="600" text-anchor="middle" dominant-baseline="middle">${escapeXml(weightText)}</text>`
+        : '';
       const arrow = geometry.arrow
         ? `<polygon points="${geometry.arrow}" fill="${color}"/>`
         : '';
-      return `<g><line x1="${geometry.x1.toFixed(2)}" y1="${geometry.y1.toFixed(2)}" x2="${geometry.x2.toFixed(2)}" y2="${geometry.y2.toFixed(2)}" stroke="${color}" stroke-width="2.4" stroke-linecap="round"/>${arrow}${weight}</g>`;
+      return `<g><line x1="${geometry.startX.toFixed(2)}" y1="${geometry.startY.toFixed(2)}" x2="${geometry.line1EndX.toFixed(2)}" y2="${geometry.line1EndY.toFixed(2)}" stroke="${color}" stroke-width="2.4" stroke-linecap="round"/><line x1="${geometry.line2StartX.toFixed(2)}" y1="${geometry.line2StartY.toFixed(2)}" x2="${geometry.endX.toFixed(2)}" y2="${geometry.endY.toFixed(2)}" stroke="${color}" stroke-width="2.4" stroke-linecap="round"/>${arrow}${weight}</g>`;
     })
     .join('\n');
 
@@ -140,7 +179,7 @@ export function buildSvg(graph: DrawGraph): string {
       const fill = node.color || DEFAULT_NODE;
       const stroke = node.color ? '#f4ead1' : DEFAULT_STROKE;
       const text = node.color ? '#0a0a0d' : DEFAULT_TEXT;
-      return `<g><circle cx="${node.x.toFixed(2)}" cy="${node.y.toFixed(2)}" r="${NODE_RADIUS}" fill="${fill}" stroke="${stroke}" stroke-width="2"/><text x="${node.x.toFixed(2)}" y="${node.y.toFixed(2)}" fill="${text}" font-size="15" font-weight="700" text-anchor="middle" dominant-baseline="middle">${escapeXml(node.label)}</text></g>`;
+      return `<g><circle cx="${node.x.toFixed(2)}" cy="${node.y.toFixed(2)}" r="${NODE_RADIUS}" fill="${fill}" stroke="${stroke}" stroke-width="2"/><text x="${node.x.toFixed(2)}" y="${node.y.toFixed(2)}" fill="${text}" font-size="${graph.nodeFontSize}" font-weight="700" text-anchor="middle" dominant-baseline="middle">${escapeXml(node.label)}</text></g>`;
     })
     .join('\n');
 
@@ -169,10 +208,11 @@ export function buildTikz(graph: DrawGraph): string {
     const u = index.get(edge.u);
     const v = index.get(edge.v);
     if (u === undefined || v === undefined) continue;
-    const arrow = graph.directed ? '[->]' : '';
+    const arrow = edge.directed ? '[->]' : '';
+    const direction = (edge.weightOffset ?? 0) < 0 ? 'below' : 'above';
     const label =
       graph.weighted && edge.weight.trim()
-        ? ` node[midway,above,draw=none] {${escapeTex(edge.weight)}}`
+        ? ` node[pos=${(edge.weightT ?? 0.5).toFixed(2)},${direction},draw=none] {${escapeTex(edge.weight)}}`
         : '';
     lines.push(`  \\draw${arrow} (n${u}) --${label} (n${v});`);
   }
@@ -180,8 +220,7 @@ export function buildTikz(graph: DrawGraph): string {
   return lines.join('\n');
 }
 
-export function downloadText(filename: string, text: string, type: string): void {
-  const blob = new Blob([text], { type });
+export function downloadBlob(filename: string, blob: Blob): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -192,12 +231,49 @@ export function downloadText(filename: string, text: string, type: string): void
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+export function downloadText(filename: string, text: string, type: string): void {
+  downloadBlob(filename, new Blob([text], { type }));
+}
+
+export function svgToPngBlob(svg: string, scale = 2): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const source = new Blob([svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(source);
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = CANVAS_WIDTH * scale;
+      canvas.height = CANVAS_HEIGHT * scale;
+      const context = canvas.getContext('2d');
+      if (!context) {
+        URL.revokeObjectURL(url);
+        reject(new Error('This browser cannot create a PNG canvas.'));
+        return;
+      }
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(url);
+        if (blob) resolve(blob);
+        else reject(new Error('This browser could not encode the PNG.'));
+      }, 'image/png');
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('The graph could not be rasterised.'));
+    };
+    image.src = url;
+  });
+}
+
 export function graphToJson(graph: DrawGraph): string {
   return JSON.stringify({ version: 1, ...graph }, null, 2);
 }
 
 export function parseGraphJson(source: string): DrawGraph {
-  const value = JSON.parse(source) as Partial<DrawGraph>;
+  const value = JSON.parse(source) as Partial<DrawGraph> & {
+    directed?: boolean;
+    edges?: Partial<DrawEdge>[];
+  };
   if (
     !value ||
     !Array.isArray(value.nodes) ||
@@ -206,6 +282,7 @@ export function parseGraphJson(source: string): DrawGraph {
   ) {
     throw new Error('This file is not a graph drawing.');
   }
+  const legacyDirected = Boolean(value.directed);
   const nodes = value.nodes.map((node, index) => {
     if (
       !node ||
@@ -243,14 +320,20 @@ export function parseGraphJson(source: string): DrawGraph {
       u: edge.u,
       v: edge.v,
       weight: edge.weight,
-      color: typeof edge.color === 'string' ? edge.color : ''
+      color: typeof edge.color === 'string' ? edge.color : '',
+      directed: typeof edge.directed === 'boolean' ? edge.directed : legacyDirected,
+      weightT: typeof edge.weightT === 'number' ? edge.weightT : 0.5,
+      weightOffset: typeof edge.weightOffset === 'number' ? edge.weightOffset : 0
     };
   });
   return {
     title: value.title,
     nodes,
     edges,
-    directed: Boolean(value.directed),
-    weighted: value.weighted !== false
+    weighted: value.weighted !== false,
+    edgeFontSize:
+      typeof value.edgeFontSize === 'number' ? value.edgeFontSize : DEFAULT_EDGE_FONT,
+    nodeFontSize:
+      typeof value.nodeFontSize === 'number' ? value.nodeFontSize : DEFAULT_NODE_FONT
   };
 }

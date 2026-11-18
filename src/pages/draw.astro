@@ -26,12 +26,15 @@ import GraphDrawTool from '../components/GraphDrawTool.svelte';
     <ul class="plain-list section-intro">
       <li><strong>Select / move</strong> selects a vertex or edge; drag a vertex to move it.</li>
       <li><strong>Add vertex</strong> places a new labelled vertex where you click.</li>
-      <li><strong>Add edge</strong> joins two vertices; click the source and then the target.</li>
+      <li><strong>Add directed edge</strong> joins two vertices with an arrow; click the source and then the target.</li>
+      <li><strong>Add undirected edge</strong> joins two vertices without an arrow.</li>
       <li><strong>Delete</strong> removes a vertex or edge. Deleting a vertex also removes its edges.</li>
     </ul>
     <p class="section-intro">
-      The editor supports undirected and directed graphs. Turn weighting off
-      for a plain graph; the stored weights are kept if you switch it back on.
+      Edges can be directed or undirected individually. Turn weighting off for
+      a plain graph; the stored weights are kept if you switch it back on.
+      Weight labels sit inside the line and can be dragged along or above and
+      below it.
     </p>
   </section>
 
@@ -39,18 +42,21 @@ import GraphDrawTool from '../components/GraphDrawTool.svelte';
     <h2 id="highlighting">Labels and highlighting</h2>
     <p class="section-intro">
       Select a vertex to edit its label or give it a colour. Select an edge to
-      edit its weight, reverse it in a directed graph, or colour it. The
+      edit its weight, switch it between directed and undirected, reverse a
+      directed edge, move its weight, or colour it. The
       <strong>Highlight neighbours</strong> toggle fades everything except the
-      selected item and the vertices and edges immediately around it.
+      selected item and the vertices and edges immediately around it. The
+      vertex and edge-weight font sizes are adjustable from the inspector.
     </p>
   </section>
 
   <section class="section" aria-labelledby="export">
     <h2 id="export">Export</h2>
     <p class="section-intro">
-      Download a standalone <code>.svg</code> for notes, a TikZ picture for a
-      LaTeX document, or a <code>.json</code> file that can be imported later.
-      The positions, labels, weights, colours and direction are preserved.
+      Download a standalone <code>.svg</code> or <code>.png</code> for notes, a
+      TikZ picture for a LaTeX document, or a <code>.json</code> file that can
+      be imported later. The positions, labels, weights, colours, font sizes
+      and edge directions are preserved.
     </p>
   </section>
 </BaseLayout>

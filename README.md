@@ -75,8 +75,9 @@ WASM_BUILD_STD=1 npm run wasm
 - `src/`: Astro static pages with one Svelte island per tool.
 - `src/components/GraphDrawTool.svelte`, `src/lib/graph-draw.ts`: an SVG graph
   editor with draggable labelled vertices, weighted or unweighted edges,
-  directed arrows, colour highlighting, undo/redo, tidy layout, JSON
-  import/export, and standalone SVG/TikZ export.
+  per-edge directed arrows, inline draggable weight labels, adjustable label
+  sizes, colour highlighting, undo/redo, tidy layout, JSON import/export, and
+  standalone SVG/PNG/TikZ export.
 - `src/components/MathField.svelte`: WYSIWYG maths input built on MathLive.
   The custom keypad inserts LaTeX at the caret; every key label is rendered
   with KaTeX.

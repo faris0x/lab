@@ -2,27 +2,33 @@
   import {
     CANVAS_HEIGHT,
     CANVAS_WIDTH,
+    DEFAULT_EDGE_FONT,
+    DEFAULT_NODE_FONT,
     NODE_RADIUS,
     PALETTE,
     buildSvg,
     buildTikz,
     cloneGraph,
+    downloadBlob,
     downloadText,
     edgeGeometry,
     graphToJson,
     parseGraphJson,
+    svgToPngBlob,
+    weightLabelWidth,
     type DrawEdge,
     type DrawGraph,
     type DrawNode
   } from '../lib/graph-draw';
 
-  type Mode = 'select' | 'node' | 'edge' | 'delete';
+  type Mode = 'select' | 'node' | 'edge-directed' | 'edge-undirected' | 'delete';
   type Selection = { kind: 'node'; id: string } | { kind: 'edge'; id: string } | null;
 
   const SAMPLE: DrawGraph = {
     title: 'Sample network',
-    directed: false,
     weighted: true,
+    edgeFontSize: DEFAULT_EDGE_FONT,
+    nodeFontSize: DEFAULT_NODE_FONT,
     nodes: [
       { id: 'n-a', label: 'A', x: 145, y: 145, color: '' },
       { id: 'n-b', label: 'B', x: 360, y: 100, color: '' },
@@ -31,12 +37,12 @@
       { id: 'n-e', label: 'E', x: 545, y: 385, color: '' }
     ],
     edges: [
-      { id: 'e-ab', u: 'n-a', v: 'n-b', weight: '4', color: '' },
-      { id: 'e-ad', u: 'n-a', v: 'n-d', weight: '2', color: '' },
-      { id: 'e-bc', u: 'n-b', v: 'n-c', weight: '3', color: '' },
-      { id: 'e-bd', u: 'n-b', v: 'n-d', weight: '5', color: '' },
-      { id: 'e-ce', u: 'n-c', v: 'n-e', weight: '6', color: '' },
-      { id: 'e-de', u: 'n-d', v: 'n-e', weight: '1', color: '' }
+      { id: 'e-ab', u: 'n-a', v: 'n-b', weight: '4', color: '', directed: false, weightT: 0.5, weightOffset: 0 },
+      { id: 'e-ad', u: 'n-a', v: 'n-d', weight: '2', color: '', directed: false, weightT: 0.5, weightOffset: 0 },
+      { id: 'e-bc', u: 'n-b', v: 'n-c', weight: '3', color: '', directed: false, weightT: 0.5, weightOffset: 0 },
+      { id: 'e-bd', u: 'n-b', v: 'n-d', weight: '5', color: '', directed: false, weightT: 0.5, weightOffset: 0 },
+      { id: 'e-ce', u: 'n-c', v: 'n-e', weight: '6', color: '', directed: false, weightT: 0.5, weightOffset: 0 },
+      { id: 'e-de', u: 'n-d', v: 'n-e', weight: '1', color: '', directed: false, weightT: 0.5, weightOffset: 0 }
     ]
   };
 
@@ -62,6 +68,9 @@
         snapshot: DrawGraph;
         moved: boolean;
       }
+    | null = null;
+  let weightDrag:
+    | { edgeId: string; snapshot: DrawGraph; moved: boolean }
     | null = null;
   let sequence = 1;
   let noticeTimer: number | undefined;
@@ -192,7 +201,7 @@
     error = '';
   }
 
-  function addEdge(u: string, v: string) {
+  function addEdge(u: string, v: string, directed: boolean) {
     if (u === v) {
       error = 'A vertex cannot be joined to itself.';
       return;
@@ -200,7 +209,7 @@
     const existing = graph.edges.find(
       (edge) =>
         (edge.u === u && edge.v === v) ||
-        (!graph.directed && edge.u === v && edge.v === u)
+        (edge.u === v && edge.v === u)
     );
     if (existing) {
       selected = { kind: 'edge', id: existing.id };
@@ -218,7 +227,10 @@
       u,
       v,
       weight: '1',
-      color: ''
+      color: '',
+      directed,
+      weightT: 0.5,
+      weightOffset: 0
     };
     graph.edges = [...graph.edges, edge];
     selected = { kind: 'edge', id: edge.id };
@@ -253,7 +265,7 @@
     } else if (mode === 'select') {
       selected = null;
       edgeSource = null;
-    } else if (mode === 'edge') {
+    } else if (mode === 'edge-directed' || mode === 'edge-undirected') {
       edgeSource = null;
       selected = null;
     }
@@ -265,12 +277,12 @@
       deleteNode(node.id);
       return;
     }
-    if (mode === 'edge') {
+    if (mode === 'edge-directed' || mode === 'edge-undirected') {
       if (!edgeSource) {
         edgeSource = node.id;
         selected = { kind: 'node', id: node.id };
       } else if (edgeSource !== node.id) {
-        addEdge(edgeSource, node.id);
+        addEdge(edgeSource, node.id, mode === 'edge-directed');
       }
       return;
     }
@@ -301,6 +313,11 @@
   }
 
   function onPointerMove(event: PointerEvent) {
+    if (weightDrag) {
+      const edge = graph.edges.find((item) => item.id === weightDrag?.edgeId);
+      if (edge) onWeightPointerMove(event, edge);
+      return;
+    }
     if (!drag) return;
     const point = svgPoint(event);
     const dx = point.x - drag.startX;
@@ -324,6 +341,7 @@
 
   function onPointerUp() {
     drag = null;
+    weightDrag = null;
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -396,11 +414,6 @@
     graph.weighted = value;
   }
 
-  function setDirected(value: boolean) {
-    remember();
-    graph.directed = value;
-  }
-
   function setNodeLabel(node: DrawNode, value: string) {
     graph.nodes = graph.nodes.map((item) =>
       item.id === node.id ? { ...item, label: value.slice(0, 8) } : item
@@ -425,6 +438,76 @@
     graph.edges = graph.edges.map((item) =>
       item.id === edge.id ? { ...item, color } : item
     );
+  }
+
+  function setEdgeDirected(edge: DrawEdge, directed: boolean) {
+    remember();
+    graph.edges = graph.edges.map((item) =>
+      item.id === edge.id ? { ...item, directed } : item
+    );
+  }
+
+  function resetWeight(edge: DrawEdge) {
+    remember();
+    graph.edges = graph.edges.map((item) =>
+      item.id === edge.id ? { ...item, weightT: 0.5, weightOffset: 0 } : item
+    );
+  }
+
+  function onWeightPointerDown(event: PointerEvent, edge: DrawEdge) {
+    event.stopPropagation();
+    if (mode === 'delete') {
+      deleteEdge(edge.id);
+      return;
+    }
+    selected = { kind: 'edge', id: edge.id };
+    weightDrag = { edgeId: edge.id, snapshot: cloneGraph(graph), moved: false };
+  }
+
+  function onWeightPointerMove(event: PointerEvent, edge: DrawEdge) {
+    if (!weightDrag || weightDrag.edgeId !== edge.id) return;
+    const from = nodeById(edge.u);
+    const to = nodeById(edge.v);
+    if (!from || !to) return;
+    const point = svgPoint(event);
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const length2 = dx * dx + dy * dy || 1;
+    const length = Math.sqrt(length2);
+    const t = clamp(
+      ((point.x - from.x) * dx + (point.y - from.y) * dy) / length2,
+      0.08,
+      0.92
+    );
+    const perpX = -dy / length;
+    const perpY = dx / length;
+    const offset = (point.x - from.x) * perpX + (point.y - from.y) * perpY;
+    if (!weightDrag.moved) {
+      past = [...past.slice(-39), weightDrag.snapshot];
+      future = [];
+      weightDrag.moved = true;
+    }
+    graph.edges = graph.edges.map((item) =>
+      item.id === edge.id ? { ...item, weightT: t, weightOffset: offset } : item
+    );
+  }
+
+  function setEdgeFontSize(value: number) {
+    graph.edgeFontSize = clamp(value, 9, 36);
+  }
+
+  function setNodeFontSize(value: number) {
+    graph.nodeFontSize = clamp(value, 9, 36);
+  }
+
+  async function exportPng() {
+    try {
+      const blob = await svgToPngBlob(buildSvg(graph), 2);
+      downloadBlob(`${fileBase()}.png`, blob);
+      flash('PNG downloaded.');
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    }
   }
 
   function reverseEdge(edge: DrawEdge) {
@@ -492,12 +575,12 @@
     event.preventDefault();
     if (mode === 'delete') {
       deleteNode(node.id);
-    } else if (mode === 'edge') {
+    } else if (mode === 'edge-directed' || mode === 'edge-undirected') {
       if (!edgeSource) {
         edgeSource = node.id;
         selected = { kind: 'node', id: node.id };
       } else if (edgeSource !== node.id) {
-        addEdge(edgeSource, node.id);
+        addEdge(edgeSource, node.id, mode === 'edge-directed');
       }
     } else {
       selected = { kind: 'node', id: node.id };
@@ -549,13 +632,23 @@
       >
       <button
         class="btn btn-small"
-        class:btn-active={mode === 'edge'}
+        class:btn-active={mode === 'edge-directed'}
         type="button"
-        aria-pressed={mode === 'edge'}
+        aria-pressed={mode === 'edge-directed'}
         onclick={() => {
-          mode = 'edge';
+          mode = 'edge-directed';
           edgeSource = null;
-        }}>Add edge</button
+        }}>Add directed edge</button
+      >
+      <button
+        class="btn btn-small"
+        class:btn-active={mode === 'edge-undirected'}
+        type="button"
+        aria-pressed={mode === 'edge-undirected'}
+        onclick={() => {
+          mode = 'edge-undirected';
+          edgeSource = null;
+        }}>Add undirected edge</button
       >
       <button
         class="btn btn-small"
@@ -577,7 +670,7 @@
   </div>
 
   <div class="draw-layout">
-    <div class="draw-canvas" class:mode-node={mode === 'node'} class:mode-edge={mode === 'edge'} class:mode-delete={mode === 'delete'}>
+    <div class="draw-canvas" class:mode-node={mode === 'node'} class:mode-edge={mode === 'edge-directed' || mode === 'edge-undirected'} class:mode-delete={mode === 'delete'}>
       <svg
         bind:this={svg}
         viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
@@ -599,7 +692,11 @@
           {@const from = nodeById(edge.u)}
           {@const to = nodeById(edge.v)}
           {#if from && to}
-            {@const geometry = edgeGeometry(from, to, graph.directed)}
+            {@const weightText = graph.weighted && edge.weight.trim() ? edge.weight : ''}
+            {@const labelWidth = weightText
+              ? weightLabelWidth(weightText, graph.edgeFontSize)
+              : 0}
+            {@const geometry = edgeGeometry(from, to, edge, labelWidth)}
             <g
               class="draw-edge"
               class:is-selected={selected?.kind === 'edge' && selected.id === edge.id}
@@ -609,13 +706,13 @@
             >
               <line
                 class="edge-hit"
-                x1={geometry.x1}
-                y1={geometry.y1}
-                x2={geometry.x2}
-                y2={geometry.y2}
+                x1={geometry.startX}
+                y1={geometry.startY}
+                x2={geometry.endX}
+                y2={geometry.endY}
                 role="button"
                 tabindex="0"
-                aria-label={`Edge ${from.label} to ${to.label}`}
+                aria-label={`${edge.directed ? 'Directed' : 'Undirected'} edge ${from.label} to ${to.label}`}
                 onpointerdown={(event) => onEdgePointerDown(event, edge)}
                 onpointerenter={() => (hovered = { kind: 'edge', id: edge.id })}
                 onpointerleave={() => (hovered = null)}
@@ -623,28 +720,47 @@
               />
               <line
                 class="edge-line"
-                x1={geometry.x1}
-                y1={geometry.y1}
-                x2={geometry.x2}
-                y2={geometry.y2}
+                x1={geometry.startX}
+                y1={geometry.startY}
+                x2={geometry.line1EndX}
+                y2={geometry.line1EndY}
                 stroke={selected?.kind === 'edge' && selected.id === edge.id
                   ? 'var(--accent)'
                   : edge.color || undefined}
               />
-              {#if graph.directed}
+              <line
+                class="edge-line"
+                x1={geometry.line2StartX}
+                y1={geometry.line2StartY}
+                x2={geometry.endX}
+                y2={geometry.endY}
+                stroke={selected?.kind === 'edge' && selected.id === edge.id
+                  ? 'var(--accent)'
+                  : edge.color || undefined}
+              />
+              {#if edge.directed}
                 <polygon
                   class="edge-arrow"
                   points={geometry.arrow}
-                  fill={edge.color || 'var(--fg-faint)'}
+                  fill={selected?.kind === 'edge' && selected.id === edge.id
+                    ? 'var(--accent)'
+                    : edge.color || 'var(--fg-faint)'}
                 />
               {/if}
-              {#if graph.weighted && edge.weight.trim()}
+              {#if weightText}
                 <text
                   class="edge-weight"
                   x={geometry.labelX}
                   y={geometry.labelY}
+                  style={`font-size:${graph.edgeFontSize}px`}
                   text-anchor="middle"
                   dominant-baseline="middle"
+                  role="button"
+                  tabindex="0"
+                  aria-label={`Drag weight ${edge.weight}`}
+                  onpointerdown={(event) => onWeightPointerDown(event, edge)}
+                  onpointerenter={() => (hovered = { kind: 'edge', id: edge.id })}
+                  onpointerleave={() => (hovered = null)}
                   >{edge.weight}</text
                 >
               {/if}
@@ -679,7 +795,13 @@
                   ? '#f4ead1'
                   : undefined}
             />
-            <text class="node-label" x={node.x} y={node.y} text-anchor="middle" dominant-baseline="middle"
+            <text
+              class="node-label"
+              x={node.x}
+              y={node.y}
+              style={`font-size:${graph.nodeFontSize}px`}
+              text-anchor="middle"
+              dominant-baseline="middle"
               >{node.label}</text
             >
           </g>
@@ -702,10 +824,30 @@
 
       <div class="draw-toggles">
         <label><input type="checkbox" checked={graph.weighted} onchange={(event) => setWeighted(event.currentTarget.checked)} /> Weighted</label>
-        <label><input type="checkbox" checked={graph.directed} onchange={(event) => setDirected(event.currentTarget.checked)} /> Directed</label>
         <label><input type="checkbox" checked={showGrid} onchange={(event) => (showGrid = event.currentTarget.checked)} /> Grid</label>
         <label><input type="checkbox" checked={highlightNeighbours} onchange={(event) => (highlightNeighbours = event.currentTarget.checked)} /> Highlight neighbours</label>
       </div>
+
+      <label class="field">
+        <span>Vertex text size · {graph.nodeFontSize}px</span>
+        <input
+          type="range"
+          min="9"
+          max="36"
+          value={graph.nodeFontSize}
+          oninput={(event) => setNodeFontSize(Number(event.currentTarget.value))}
+        />
+      </label>
+      <label class="field">
+        <span>Weight text size · {graph.edgeFontSize}px</span>
+        <input
+          type="range"
+          min="9"
+          max="36"
+          value={graph.edgeFontSize}
+          oninput={(event) => setEdgeFontSize(Number(event.currentTarget.value))}
+        />
+      </label>
 
       {#if selectedNode}
         <div class="draw-selection">
@@ -739,7 +881,10 @@
         </div>
       {:else if selectedEdge}
         <div class="draw-selection">
-          <h3>Edge {nodeById(selectedEdge.u)?.label ?? '?'}–{nodeById(selectedEdge.v)?.label ?? '?'}</h3>
+          <h3>
+            {selectedEdge.directed ? 'Directed' : 'Undirected'} edge
+            {nodeById(selectedEdge.u)?.label ?? '?'}–{nodeById(selectedEdge.v)?.label ?? '?'}
+          </h3>
           {#if graph.weighted}
             <label class="field">
               <span>Weight</span>
@@ -766,11 +911,20 @@
             >
           </div>
           <div class="btn-row">
-            {#if graph.directed}
+            <button
+              class="btn btn-ghost btn-small"
+              type="button"
+              onclick={() => setEdgeDirected(selectedEdge, !selectedEdge.directed)}
+              >Make {selectedEdge.directed ? 'undirected' : 'directed'}</button
+            >
+            {#if selectedEdge.directed}
               <button class="btn btn-ghost btn-small" type="button" onclick={() => reverseEdge(selectedEdge)}
                 >Reverse</button
               >
             {/if}
+            <button class="btn btn-ghost btn-small" type="button" onclick={() => resetWeight(selectedEdge)}
+              >Centre weight</button
+            >
             <button class="btn btn-ghost btn-small" type="button" onclick={() => deleteEdge(selectedEdge.id)}
               >Delete edge</button
             >
@@ -780,7 +934,9 @@
         <div class="draw-help">
           <p><strong>Select / move</strong> drags vertices.</p>
           <p><strong>Add vertex</strong> clicks the canvas.</p>
-          <p><strong>Add edge</strong> clicks two vertices.</p>
+          <p><strong>Add directed edge</strong> clicks two vertices.</p>
+          <p><strong>Add undirected edge</strong> clicks two vertices.</p>
+          <p>Drag an edge weight to slide it along the line or move it above/below it.</p>
           <p><strong>Delete</strong> removes a vertex or edge.</p>
         </div>
       {/if}
@@ -789,6 +945,7 @@
         <p class="draw-subhead">Export</p>
         <div class="btn-row">
           <button class="btn btn-ghost btn-small" type="button" onclick={exportSvg}>SVG</button>
+          <button class="btn btn-ghost btn-small" type="button" onclick={exportPng}>PNG</button>
           <button class="btn btn-ghost btn-small" type="button" onclick={copySvg}>Copy SVG</button>
           <button class="btn btn-ghost btn-small" type="button" onclick={exportTikz}>TikZ</button>
           <button class="btn btn-ghost btn-small" type="button" onclick={exportJson}>JSON</button>
@@ -935,12 +1092,11 @@
 
   .edge-weight {
     fill: var(--fg);
-    stroke: var(--bg-card);
-    stroke-width: 4;
-    paint-order: stroke;
-    font-size: 13px;
+    stroke: none;
     font-weight: 600;
-    pointer-events: none;
+    pointer-events: all;
+    cursor: move;
+    user-select: none;
   }
 
   .empty-canvas {
