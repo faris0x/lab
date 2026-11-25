@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
+
 //! Number-base conversion, normalisation and custom/IEEE floating point.
 
 use num_bigint::{BigInt, BigUint, Sign};

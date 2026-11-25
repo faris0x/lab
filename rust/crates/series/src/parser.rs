@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
+
 use crate::expr::{
     add, constant_value, div, fn_expr, mul, neg, pow, sub, Const, Expr, FunctionName, RAT_HALF,
 };

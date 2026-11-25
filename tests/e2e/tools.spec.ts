@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { expect, test } from '@playwright/test';
 
 const routes = [
@@ -48,6 +51,26 @@ test('serves every generated wasm module', async ({ request }) => {
     const response = await request.get(`/wasm/${name}/${name}_bg.wasm`);
     expect(response.status(), name).toBe(200);
   }
+});
+
+test('finds the exact minimum Boolean cover', async ({ page }) => {
+  await page.goto('/boolean');
+  const field = page.locator('math-field').first();
+  await field.waitFor();
+  await field.evaluate((element) => {
+    const input = element as HTMLElement & { value: string };
+    input.value =
+      '\\neg a\\land \\neg b\\land \\neg c\\land d' +
+      '\\lor \\neg a\\land \\neg b\\land c\\land \\neg d' +
+      '\\lor \\neg a\\land \\neg b\\land c\\land d' +
+      '\\lor \\neg a\\land b\\land \\neg c\\land \\neg d' +
+      '\\lor \\neg a\\land b\\land \\neg c\\land d' +
+      '\\lor \\neg a\\land b\\land c\\land \\neg d';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.getByRole('button', { name: 'Simplify', exact: true }).click();
+  await expect(page.locator('.error')).toHaveCount(0);
+  await expect(page.locator('.status')).toHaveText('3 terms', { timeout: 30_000 });
 });
 
 test('solves the default simplex problem', async ({ page }) => {

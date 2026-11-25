@@ -153,7 +153,7 @@ cannot drift.
 | Series WASM | 184 KB raw / 58.0 KB gzip |
 | Logic WASM | 208 KB raw / 64.0 KB gzip |
 | Floating WASM | 266 KB raw / 95.6 KB gzip |
-| Boolean WASM | 254 KB raw / 71.8 KB gzip |
+| Boolean WASM | 297 KB raw / 84.4 KB gzip |
 | wasm-bindgen glue (each) | 6.8 KB raw |
 | KaTeX CSS | 24.8 KB raw / 3.5 KB gzip |
 | Hubot Sans subset | 48 KB WOFF2 |
@@ -186,8 +186,8 @@ and dormant language scripts.
 - Graphs: critical path analysis, route inspection, max flow and the visual
   graph editor are not implemented yet. The current release covers Dijkstra,
   Floyd–Warshall, Kruskal and Prim over an adjacency matrix.
-- Boolean: the cover after finding prime implicants is greedy, not an exact
-  Petrick cover. There is no K-map or don't-care input yet.
+- Boolean: the cover after finding prime implicants is exact, with term count
+  ranked before literal count. There is no K-map or don't-care input yet.
 - Floating point: bit-field arithmetic, rounding modes and ULP analysis are
   not implemented yet. Irrational numeric roots are approximated.
 - Matrix: arithmetic, eigenvalues/eigenvectors, LU/QR and least squares are
@@ -217,7 +217,7 @@ npm run size
 npm run test:e2e
 ```
 
-- Rust: 91 tests covering parsing, exact arithmetic, overflow errors,
+- Rust: 93 tests covering parsing, exact arithmetic, overflow errors,
   maximisation, minimisation, Big-M, equality constraints, negative RHS,
   infeasibility, unboundedness, RREF, determinant, inverse, nullspace,
   linear systems, complex arithmetic, polar form, powers and roots, graph

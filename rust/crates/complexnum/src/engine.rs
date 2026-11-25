@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
+
 //! Exact complex arithmetic plus numeric polar/root work for the Argand tool.
 
 use mathcore::Rat;

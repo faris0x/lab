@@ -1,3 +1,6 @@
+<!-- Copyright (c) 2026 Faris Alfarhan -->
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+
 <script lang="ts">
   import MathLabel from './MathLabel.svelte';
   import type { Base, MathFormat } from '../lib/math-input';

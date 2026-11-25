@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 Faris Alfarhan
+# SPDX-License-Identifier: GPL-3.0-only
+
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

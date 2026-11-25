@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
+
 //! JSON view models and LaTeX generation. The UI renders exact rationals as
 //! HTML; LaTeX is generated here from the same structured trace.
 

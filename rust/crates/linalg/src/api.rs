@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
+
 use crate::engine::{determinant, inverse, nullspace, rref, solve, Matrix, SolveKind};
 use crate::render::{self, LabeledMatrix, LabeledScalar, LabeledVector, Outcome, ResultData};
 use mathcore::Rat;

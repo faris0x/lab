@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
+
 use crate::engine::{matrix_latex, vector_latex, Matrix, Step};
 use mathcore::Rat;
 use serde::Serialize;

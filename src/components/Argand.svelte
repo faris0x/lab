@@ -1,3 +1,6 @@
+<!-- Copyright (c) 2026 Faris Alfarhan -->
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+
 <script lang="ts">
   import { scaleLinear } from 'd3-scale';
   import MathBlock from './Math.svelte';

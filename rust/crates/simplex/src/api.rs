@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
+
 use crate::engine::{
     self, Constraint, FinishOptions, Header, Method, Model, Op, Sense, Tableau, VarKind,
 };

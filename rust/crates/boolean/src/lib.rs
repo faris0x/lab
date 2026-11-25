@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
+
 //! Boolean simplification with prime implicants and canonical forms.
 
 use logic::{collect_variables, evaluate, label, parse, Node};
@@ -156,46 +159,143 @@ fn minimise(
         .collect();
 
     let mut essential: Vec<PrimeImplicant> = Vec::new();
-    let mut selected: Vec<PrimeImplicant> = Vec::new();
-    let mut uncovered: BTreeSet<usize> = minterms.iter().copied().collect();
+    let mut essential_bits: BTreeSet<String> = BTreeSet::new();
 
     for minterm in minterms {
         let covering: Vec<&PrimeImplicant> = primes
             .iter()
             .filter(|prime| prime.covers.contains(minterm))
             .collect();
-        if covering.len() == 1 && !selected.iter().any(|prime| prime.bits == covering[0].bits) {
+        if covering.len() == 1 && !essential_bits.contains(&covering[0].bits) {
             let prime = covering[0].clone();
-            selected.push(prime.clone());
-            essential.push(prime.clone());
-            for value in &prime.covers {
-                uncovered.remove(value);
-            }
+            essential_bits.insert(prime.bits.clone());
+            essential.push(prime);
         }
     }
 
-    while !uncovered.is_empty() {
-        let mut best: Option<&PrimeImplicant> = None;
-        let mut best_count = 0usize;
-        for prime in &primes {
-            let count = prime
-                .covers
-                .iter()
-                .filter(|value| uncovered.contains(value))
-                .count();
-            if count > best_count {
-                best = Some(prime);
-                best_count = count;
-            }
-        }
-        let Some(best) = best else { break };
-        selected.push(best.clone());
-        for value in &best.covers {
-            uncovered.remove(value);
-        }
-    }
+    let mut selected = essential.clone();
+    selected.extend(exact_cover(&primes, &essential_bits, minterms));
+    selected.sort_by(|left, right| left.bits.cmp(&right.bits));
 
     (primes, essential, selected)
+}
+
+fn literal_count(bits: &str) -> usize {
+    bits.chars().filter(|bit| *bit != '-').count()
+}
+
+fn cover_is_better(candidate: &[usize], best: &[usize], primes: &[PrimeImplicant]) -> bool {
+    if candidate.len() != best.len() {
+        return candidate.len() < best.len();
+    }
+    let candidate_literals: usize = candidate
+        .iter()
+        .map(|index| literal_count(&primes[*index].bits))
+        .sum();
+    let best_literals: usize = best
+        .iter()
+        .map(|index| literal_count(&primes[*index].bits))
+        .sum();
+    if candidate_literals != best_literals {
+        return candidate_literals < best_literals;
+    }
+    let mut candidate_bits: Vec<&str> = candidate
+        .iter()
+        .map(|index| primes[*index].bits.as_str())
+        .collect();
+    let mut best_bits: Vec<&str> = best
+        .iter()
+        .map(|index| primes[*index].bits.as_str())
+        .collect();
+    candidate_bits.sort_unstable();
+    best_bits.sort_unstable();
+    candidate_bits < best_bits
+}
+
+fn search_cover(
+    primes: &[PrimeImplicant],
+    candidates: &[usize],
+    uncovered: &BTreeSet<usize>,
+    chosen: &mut Vec<usize>,
+    best: &mut Option<Vec<usize>>,
+) {
+    if uncovered.is_empty() {
+        if best
+            .as_ref()
+            .is_none_or(|current| cover_is_better(chosen, current, primes))
+        {
+            *best = Some(chosen.clone());
+        }
+        return;
+    }
+    if best
+        .as_ref()
+        .is_some_and(|current| chosen.len() >= current.len())
+    {
+        return;
+    }
+
+    let pivot = uncovered
+        .iter()
+        .min_by_key(|minterm| {
+            candidates
+                .iter()
+                .filter(|index| primes[**index].covers.contains(minterm))
+                .count()
+        })
+        .copied();
+    let Some(pivot) = pivot else {
+        return;
+    };
+
+    for &index in candidates {
+        if !primes[index].covers.contains(&pivot) {
+            continue;
+        }
+        let mut remaining = uncovered.clone();
+        for covered in &primes[index].covers {
+            remaining.remove(covered);
+        }
+        chosen.push(index);
+        search_cover(primes, candidates, &remaining, chosen, best);
+        chosen.pop();
+    }
+}
+
+fn exact_cover(
+    primes: &[PrimeImplicant],
+    essential_bits: &BTreeSet<String>,
+    minterms: &[usize],
+) -> Vec<PrimeImplicant> {
+    let mut uncovered: BTreeSet<usize> = minterms.iter().copied().collect();
+    for prime in primes {
+        if essential_bits.contains(&prime.bits) {
+            for covered in &prime.covers {
+                uncovered.remove(covered);
+            }
+        }
+    }
+    if uncovered.is_empty() {
+        return Vec::new();
+    }
+
+    let candidates: Vec<usize> = primes
+        .iter()
+        .enumerate()
+        .filter(|(_, prime)| !essential_bits.contains(&prime.bits))
+        .filter(|(_, prime)| prime.covers.iter().any(|value| uncovered.contains(value)))
+        .map(|(index, _)| index)
+        .collect();
+
+    let mut best = None;
+    let mut chosen = Vec::new();
+    search_cover(primes, &candidates, &uncovered, &mut chosen, &mut best);
+    let mut chosen = best.unwrap_or_default();
+    chosen.sort_by(|left, right| primes[*left].bits.cmp(&primes[*right].bits));
+    chosen
+        .into_iter()
+        .map(|index| primes[index].clone())
+        .collect()
 }
 
 fn latex_expression(expression: &str) -> String {
@@ -495,5 +595,32 @@ mod tests {
         assert!(simplify_boolean("a|b|c|d|e|g|h")
             .unwrap_err()
             .contains("at most six"));
+    }
+
+    #[test]
+    fn exact_cover_beats_greedy() {
+        let result = simplify_boolean(
+            "~a&~b&~c&d | ~a&~b&c&~d | ~a&~b&c&d | \
+             ~a&b&~c&~d | ~a&b&~c&d | ~a&b&c&~d",
+        )
+        .unwrap();
+
+        assert_eq!(result.selected.len(), 3);
+        let terms: BTreeSet<&str> = result
+            .selected
+            .iter()
+            .map(|prime| prime.expression.as_str())
+            .collect();
+        assert!(terms.contains("¬a ∧ ¬c ∧ d"));
+        assert!(terms.contains("¬a ∧ ¬b ∧ c"));
+        assert!(terms.contains("¬a ∧ b ∧ ¬d"));
+    }
+
+    #[test]
+    fn exact_cover_is_deterministic() {
+        let source = "a&b | a&~b | ~a&c";
+        let first = simplify_boolean(source).unwrap().minimal;
+        let second = simplify_boolean(source).unwrap().minimal;
+        assert_eq!(first, second);
     }
 }

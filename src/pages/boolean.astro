@@ -1,4 +1,6 @@
 ---
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
 import LatexLogo from '../components/LatexLogo.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import BooleanTool from '../components/BooleanTool.svelte';
@@ -32,8 +34,8 @@ import BooleanTool from '../components/BooleanTool.svelte';
     <p class="section-intro">
       The simplifier uses the Quine–McCluskey method. It combines adjacent
       minterms into prime implicants, then chooses essential prime implicants
-      and a small cover for the rest. The result is a minimal sum of products,
-      not merely a different-looking equivalent statement.
+      and computes an exact cover for the rest. The result is a minimum sum of
+      products, not merely a different-looking equivalent statement.
     </p>
   </section>
 

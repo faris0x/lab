@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
+
 use crate::engine::{arithmetic, polar_form, power, roots, Exact};
 use crate::render;
 use mathcore::Rat;

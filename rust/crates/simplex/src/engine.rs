@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
+
 //! Model parsing, standard form conversion, and the simplex / Big-M engine.
 
 use mathcore::{MVal, Rat};

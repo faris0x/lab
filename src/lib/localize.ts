@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
+
 const AR_DIGITS = '٠١٢٣٤٥٦٧٨٩';
 
 export function arDigits(value: string | number): string {

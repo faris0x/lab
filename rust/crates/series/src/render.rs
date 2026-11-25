@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
+
 use crate::detect::{detect, GeneralTerm};
 use crate::expr::{
     constant_value, derivative, div, expr_latex, expr_plain, factorial, node_count, rat_expr,

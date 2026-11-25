@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
+
 //! Exact rational arithmetic and the symbolic `a + bM` value used by Big-M.
 //!
 //! Deliberately small: no big integers, no floating point. A-level and early

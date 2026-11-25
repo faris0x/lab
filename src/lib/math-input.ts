@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
+
 export type MathFormat = 'number' | 'logic' | 'expression' | 'base';
 
 export type Base = 2 | 8 | 10 | 16;

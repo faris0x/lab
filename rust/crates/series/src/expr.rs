@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
+
 //! A small symbolic expression engine for Taylor and Maclaurin series.
 
 use mathcore::Rat;

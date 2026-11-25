@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Faris Alfarhan
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { readable } from 'svelte/store';
 
 type Lang = 'en' | 'ar';
